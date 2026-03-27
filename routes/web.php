@@ -68,6 +68,7 @@ Route::get('chatbotstock', [App\Http\Controllers\ApiController::class, 'chatbots
 
 Route::get('sale-order-print', [App\Http\Controllers\Sale_order\Sale_orderController::class, 'saleBill'])->name('sale_order.print');
 
+Route::match(['get', 'post'], '/woocommerce/webhook', [App\Http\Controllers\WooWebhookController::class, 'handleOrder']);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -142,12 +143,24 @@ Route::get('/get-type-product/{type}', [App\Http\Controllers\inward\InwardContro
     Route::get('Farm-get-stock', [App\Http\Controllers\inward\FarmDeliveryChallanController::class,'getStock'])->name('FARMDC.get-stock');
 
     Route::resource('warehouse_inward', App\Http\Controllers\inward\WarehouseInwardController::class);
+    Route::get('warehouse_inward.get-invoice', [App\Http\Controllers\inward\WarehouseInwardController::class, 'getInvoiceBatch']) ->name('warehouse_inward.get-invoice');
+    Route::get('Farm-DC-get-order-records', [App\Http\Controllers\inward\WarehouseInwardController::class, 'getOrderRecords'])->name('Farm-DC-getOrderRecords');
+    Route::get('farm-stock-report',[FarmDeliveryChallanController::class, 'farmStockReport'])->name('farm.stock.forreport');
+    Route::get('Warehouse-stock-report',[App\Http\Controllers\inward\WarehouseInwardController::class, 'WarehouseStockReport'])->name('Warehouse.stock.forreport');
+
+    Route::get('Warehouse-get-stock', [App\Http\Controllers\inward\WarehouseInwardController::class,'stockReport'])->name('WarehouseStockReport.get-stock');
 
     Route::get('inward-get-rate', [App\Http\Controllers\inward\InwardController::class,'getRates'])->name('inward.get-rate');
     Route::get('farm-stock-report',[FarmDeliveryChallanController::class, 'farmStockReport'])->name('farm.stock.forreport');
     Route::get('get-batch-by-locationForStock',[FarmDeliveryChallanController::class, 'getBatchByLocation'])->name('get.batch.by.locationForStock');
     Route::get('Farm-get-stockReport',[FarmDeliveryChallanController::class, 'getStockReport'])->name('FARMReport.get-stock');
     Route::get('FarmDCdBill-print', [FarmDeliveryChallanController::class, 'FarmDCBill'])->name('FarmDCBill.print');
+
+
+    Route::resource('ripening_chamber', App\Http\Controllers\inward\RipeningChamberController::class);
+    Route::get('ripening_chamber.get-invoice', [App\Http\Controllers\inward\RipeningChamberController::class, 'getInvoiceBatch']) ->name('ripening_chamber.get-invoice');
+    Route::get('ripening_chamber-data', [App\Http\Controllers\inward\RipeningChamberController::class, 'getData'])->name('ripening_chamber.data');
+    Route::get('ripening_chamber-get-order-records', [App\Http\Controllers\inward\RipeningChamberController::class, 'getOrderRecords'])->name('ripening_chamber-getOrderRecords');
 
     Route::resource('sale_order', App\Http\Controllers\Sale_order\Sale_orderController::class);
     Route::post('customers.store', [App\Http\Controllers\Sale_order\Sale_orderController::class,'customersstore'])->name('customers.store');

@@ -4,13 +4,15 @@ namespace App\DataTables;
 
 use Carbon\Carbon;
 use App\Models\Farm_Delivery_challan;
+use App\Models\Warehouse_inward;
+
 use App\Models\farm_inward_details;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Services\DataTable;
 
-class Farm_DeliveryChallanDataTable extends DataTable
+class WarehouseInwardDataTable extends DataTable
 {
     /**
      * Build the DataTable class.
@@ -20,8 +22,8 @@ class Farm_DeliveryChallanDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable( $query))
-            ->editColumn('challan_date', function ($row) {
-                return Carbon::parse($row->challan_date)->format('d-m-Y');
+            ->editColumn('billdate', function ($row) {
+                return Carbon::parse($row->billdate)->format('d-m-Y');
             })
     ->filterColumn('transporter_invoice', function ($query, $keyword) {
     $query->where(function ($q) use ($keyword) {
@@ -48,7 +50,7 @@ class Farm_DeliveryChallanDataTable extends DataTable
                 // Load related details for the current row
                 $details = $row->details; // Assuming 'details' is the relationship
                 $html = '<table class="table table-bordered small"><thead>';
-                $html .= '<tr><th>Products</th><th>Size</th><th>Stage</th><th>Batch No</th><th>Quantity</th></tr></thead><tbody>';
+                $html .= '<tr><th>Products</th><th>Size</th><th>Stage</th><th>Batch No</th><th>Quantity</th><th>Receive Qty</th></tr></thead><tbody>';
 
                 foreach ($details as $detail) {
                     $productName = $detail->product->product_name ?? 'N/A'; // Fetch product name
@@ -60,6 +62,7 @@ class Farm_DeliveryChallanDataTable extends DataTable
                     $html .= "<td>{$detail->stage}</td>";
                     $html .= "<td>{$detail->batch_number}</td>";
                     $html .= "<td>{$detail->Quantity}</td>";
+                    $html .= "<td>{$detail->received_qty}</td>";
                     $html .= '</tr>';
                 }
 
@@ -69,8 +72,8 @@ class Farm_DeliveryChallanDataTable extends DataTable
                 ->editColumn('action', function ($row) {
 
                     $actionButtons = view('admin.inc.action', [
-                        'edit' => 'admin.Farm_Delivery_challan.edit',
-                        'delete' => 'admin.Farm_Delivery_challan.destroy',
+                        'edit' => 'admin.warehouse_inward.edit',
+                        'delete' => 'admin.warehouse_inward.destroy',
                         'data' => $row
                     ])->render();
 
@@ -83,7 +86,7 @@ class Farm_DeliveryChallanDataTable extends DataTable
                 })
 
             ->addColumn('transporter_invoice', function ($row) {
-                return $row->transporter_name . ' - ' . $row->Invoicenumber;
+                return $row->receive_location_name. ' - ' . $row->Invoicenumber;
             })
 
             ->rawColumns(['action', 'details']); // Ensure 'action' and 'details' are handled as raw HTML
@@ -92,7 +95,7 @@ class Farm_DeliveryChallanDataTable extends DataTable
     /**
      * Get the query source of dataTable.
      */
-    public function query(Farm_Delivery_challan $model): QueryBuilder
+    public function query(Warehouse_inward $model): QueryBuilder
     {
         $fromDate = request()->get('from_date');
         $toDate = request()->get('to_date');
@@ -100,13 +103,13 @@ class Farm_DeliveryChallanDataTable extends DataTable
         $season = session('selected_season');
 
         $query = $model->newQuery()
-            ->select('farm_delivery_challan.*')
+            ->select('warehouse_inward.*')
             ->with(['details'])
             ->where('season', $season)
             ->orderBy('id', 'desc'); // ID DESC here
 
         if ($fromDate && $toDate) {
-            $query->whereBetween('challan_date', [$fromDate, $toDate]);
+            $query->whereBetween('billdate', [$fromDate, $toDate]);
         }
 
         return $query;
@@ -146,8 +149,8 @@ class Farm_DeliveryChallanDataTable extends DataTable
     {
         return [
             ['data' => 'sr_no', 'title' => __('Sr. No'), 'orderable' => true, 'searchable' => true],
-            ['data' => 'transporter_invoice', 'title' => __('Transporter-Invoice No')],
-            ['data' => 'challan_date', 'title' => __('Challan Date'), 'orderable' => true, 'searchable' => true],
+            ['data' => 'transporter_invoice', 'title' => __('Location-Invoice No')],
+            ['data' => 'billdate', 'title' => __('Date'), 'orderable' => true, 'searchable' => true],
             ['data' => 'details', 'title' => __('Product Details'), 'orderable' => true, 'searchable' => true],
             ['data' => 'action', 'title' => __('Action'), 'orderable' => false, 'searchable' => false],
         ];

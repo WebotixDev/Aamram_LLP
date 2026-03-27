@@ -65,7 +65,7 @@ if (isset($invoice)) {
                   <label>Challan Date <span class="required" style="color:red;">*</span></label>
 
                   <input class="datepicker-here form-control" id="billdate" name="billdate" type="text"
-                                        value="{{ isset($Farm_Delivery_challan->billdate) ? \Carbon\Carbon::parse($Farm_Delivery_challan->billdate)->format('d-m-Y') : (old('billdate') ?? date('d-m-Y')) }}"
+                                        value="{{ isset($Farm_Delivery_challan->challan_date) ? \Carbon\Carbon::parse($Farm_Delivery_challan->challan_date)->format('d-m-Y') : (old('challan_date') ?? date('d-m-Y')) }}"
                                         data-language="en"
                                         placeholder="Enter Date"
                                         data-date-format="dd-mm-yyyy" data-auto-close="true">

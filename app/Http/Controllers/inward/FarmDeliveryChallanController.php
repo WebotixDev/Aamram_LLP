@@ -52,18 +52,71 @@ public function getInvoiceBatch(Request $request)
         'invoice' => $invoice,
     ]);
 }
+// public function getBatchByLocation(Request $request)
+// {
+//     $location_id = $request->location_id;
+
+//     $batches = DB::table('farm_inward')
+//         ->where('location_id', $location_id)
+//         ->select('id','batch_number')
+//         ->get();
+
+//     return response()->json([
+//         'status' => 'success',
+//         'data' => $batches
+//     ]);
+// }
+
+
 public function getBatchByLocation(Request $request)
 {
     $location_id = $request->location_id;
 
-    $batches = DB::table('farm_inward')
-        ->where('location_id', $location_id)
-        ->select('id','batch_number')
+    $batches = DB::table('farm_inward as fi')
+        ->join('farm_inward_details as fid', 'fi.id', '=', 'fid.pid')
+        ->select(
+            'fi.id',
+            'fi.batch_number',
+            'fid.services',
+            'fid.size',
+            'fid.stage',
+            'fid.batch_number as detail_batch'
+        )
+        ->where('fi.location_id', $location_id)
         ->get();
+
+    $finalBatches = [];
+
+    foreach ($batches as $row) {
+
+        $stock = \App\Helpers\Helpers::getFarmStock(
+            $row->services,
+            $row->size,
+            $row->stage,
+            $row->detail_batch
+        );
+
+        if ($stock > 0) {
+            // ✅ Use batch id as key to avoid duplicates
+            if (!isset($finalBatches[$row->id])) {
+                $finalBatches[$row->id] = [
+                    'id' => $row->id,
+                    'batch_number' => $row->batch_number,
+                    'stock' => 0
+                ];
+            }
+
+            // ✅ Add stock
+            $finalBatches[$row->id]['stock'] += $stock;
+        }
+    }
+
+    // Reset array keys
+    $finalBatches = array_values($finalBatches);
 
     return response()->json([
         'status' => 'success',
-        'data' => $batches
+        'data' => $finalBatches
     ]);
 }
 
@@ -79,6 +132,7 @@ public function farmStockReport()
 // ==========================
 // 👉 Get Batch
 // ==========================
+
 public function getBatchByLocationForStock(Request $request)
 {
     $location_id = $request->location_id;

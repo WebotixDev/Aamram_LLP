@@ -2,44 +2,44 @@
 
 namespace App\Http\Controllers\inward;
 
-use App\Models\Farm_Delivery_challan;
-use App\Models\Farm_Delivery_challan_details;
+use App\Models\Ripening_Chamber;
+use App\Models\Ripening_Chamber_details;
 use App\Models\Warehouse_inward;
 use App\Models\Warehouse_inward_details;
 use App\Models\Product;
 use App\Models\Product_details;
 use Illuminate\Http\Request;
-use App\DataTables\WarehouseInwardDataTable;
+use App\DataTables\Ripening_ChamberDataTable;
 use App\Http\Controllers\Controller;
-use App\Repositories\WarehouseInwardRepository;
+use App\Repositories\RipeningChamberRepository;
 use Illuminate\Support\Facades\DB;
 
-class WarehouseInwardController extends Controller
+class RipeningChamberController extends Controller
 {
     protected $repository;
 
-    public function __construct(WarehouseInwardRepository $repository)
+    public function __construct(RipeningChamberRepository $repository)
     {
         $this->repository = $repository;
     }
 
 
-    public function index(WarehouseInwardDataTable $dataTable)
+    public function index(Ripening_ChamberDataTable $dataTable)
     {
-        return $dataTable->render('admin.warehouse_inward.index');
+        return $dataTable->render('admin.ripening_chamber.index');
     }
 
 
-    public function create(Warehouse_inward $Warehouse_inward)
+    public function create(Warehouse_inward $ripening_chamber)
     {
 
-        return view('admin.warehouse_inward.create' , ['Warehouse_inward' => $Warehouse_inward]);
+        return view('admin.ripening_chamber.create' , ['ripening_chamber' => $ripening_chamber]);
 
     }
 
 public function getInvoiceBatch(Request $request)
 {
-    $invoice = \App\Helpers\Helpers::getNextInvoiceForWarehouseInward($request->location_id);
+    $invoice = \App\Helpers\Helpers::getNextInvoiceForRipening($request->location_id);
 
     return response()->json([
         'invoice' => $invoice,
@@ -86,126 +86,20 @@ public function getBatchByLocationForStock(Request $request)
     ]);
 }
 
-// public function getOrderRecords(Request $request)
-// {
-//     $farm_dcNo = $request->farm_dcNo;
-
-//     $challan = Farm_Delivery_challan::where('Invoicenumber',$farm_dcNo)
-//                 ->orWhere('invoice_no',$farm_dcNo)
-//                 ->first();
-
-//     if(!$challan){
-//         return response()->json(['status'=>'error','data'=>[]]);
-//     }
-
-//     $details = Farm_Delivery_challan_details::where('pid',$challan->id)->get();
-
-//     $data = [];
-
-//     // foreach($details as $row){
-//     //     $product = DB::table('products')->where('id',$row->services)->first();
-//     //     $size = DB::table('product_details')->where('id',$row->size)->first();
-
-//     //     $receivedSum = DB::table('warehouse_inward_details as wid')
-//     //         ->join('warehouse_inward as wi','wi.id','=','wid.pid')
-//     //         ->where('wi.farm_dcNo',$farm_dcNo)
-//     //         ->where('wid.services',$row->services)
-//     //         ->where('wid.size',$row->size)
-//     //         ->where('wid.batch_number',$row->batch_number)
-//     //         ->sum('wid.received_qty');
-
-//     //     $currentEditReceived = 0;
-//     //     if($request->inward_id){
-//     //         $currentEditReceived = DB::table('warehouse_inward_details')
-//     //             ->where('pid',$request->inward_id)
-//     //             ->where('services',$row->services)
-//     //             ->where('size',$row->size)
-//     //             ->where('batch_number',$row->batch_number)
-//     //             ->value('received_qty') ?? 0;
-//     //     }
-
-//     //     $remainingQty = $row->Quantity - $receivedSum + $currentEditReceived;
-//     //     if($remainingQty <= 0) continue;
-
-//     //     $data[] = [
-//     //         'services' => $product->product_name ?? '',
-//     //         'servicesid' => $row->services,
-//     //         'size' => $row->size,
-//     //         'p_size' => $size->product_size ?? '',
-//     //         'stage' => $row->stage,
-//     //         'batch_number' => $row->batch_number,
-//     //         'Quantity' => $row->Quantity,
-//     //         'rem_qty' => $remainingQty,
-//     //         'received_qty' => $currentEditReceived
-//     //     ];
-//     // }
-
-//     foreach($details as $row){
-//     $product = DB::table('products')->where('id',$row->services)->first();
-//     $size = DB::table('product_details')->where('id',$row->size)->first();
-
-//     // Sum of only received quantities from warehouse_inward_details
-//     $receivedSum = DB::table('warehouse_inward_details as wid')
-//         ->join('warehouse_inward as wi','wi.id','=','wid.pid')
-//         ->where('wi.farm_dcNo',$farm_dcNo)
-//         ->where('wid.services',$row->services)
-//         ->where('wid.size',$row->size)
-//         ->where('wid.batch_number',$row->batch_number)
-//         ->sum('wid.received_qty');
-
-//     $currentEditReceived = 0;
-//     $currentEditMissing = 0;
-
-//     if($request->inward_id){
-//         $currentRow = DB::table('warehouse_inward_details')
-//             ->where('pid',$request->inward_id)
-//             ->where('services',$row->services)
-//             ->where('size',$row->size)
-//             ->where('batch_number',$row->batch_number)
-//             ->first();
-
-//         $currentEditReceived = $currentRow->received_qty ?? 0;
-//         $currentEditMissing = $currentRow->missing_qty ?? 0;
-//     }
-
-//     // Remaining quantity = original qty - received qty - missing qty already recorded + current edit
-//     $remainingQty = $row->Quantity - $receivedSum - $currentEditMissing + $currentEditReceived;
-
-//     if($remainingQty <= 0) continue;
-
-//     $data[] = [
-//         'services' => $product->product_name ?? '',
-//         'servicesid' => $row->services,
-//         'size' => $row->size,
-//         'p_size' => $size->product_size ?? '',
-//         'stage' => $row->stage,
-//         'batch_number' => $row->batch_number,
-//         'Quantity' => $row->Quantity,
-//         'rem_qty' => $remainingQty,
-//         'received_qty' => $currentEditReceived,
-//         'missing_qty' => $currentEditMissing
-//     ];
-// }
-//     if(empty($data)){
-//         return response()->json(['status'=>'empty','message'=>'All quantities already received for this challan.','data'=>[]]);
-//     }
-
-//     return response()->json(['status'=>'success','data'=>$data]);
-// }
 
 public function getOrderRecords(Request $request)
 {
-    $farm_dcNo = $request->farm_dcNo;
+    $warehouse_inward_No = $request->warehouse_inward_No;
 
-    $challan = Farm_Delivery_challan::where('Invoicenumber', $farm_dcNo)
-                ->orWhere('invoice_no', $farm_dcNo)
+    $challan = Warehouse_inward::where('Invoicenumber', $warehouse_inward_No)
+                ->orWhere('invoice_no', $warehouse_inward_No)
                 ->first();
 
     if (!$challan) {
         return response()->json(['status' => 'error','data' => []]);
     }
 
-    $details = Farm_Delivery_challan_details::where('pid', $challan->id)->get();
+    $details = Warehouse_inward_details::where('pid', $challan->id)->get();
     $data = [];
 
     foreach ($details as $row) {
@@ -213,37 +107,34 @@ public function getOrderRecords(Request $request)
         $size = DB::table('product_details')->where('id', $row->size)->first();
 
         // Sum of received + missing from all inward details **excluding current inward row if editing**
-        $totalReceived = DB::table('warehouse_inward_details as wid')
-            ->join('warehouse_inward as wi','wi.id','=','wid.pid')
-            ->where('wi.farm_dcNo', $farm_dcNo)
+        $totalReceived = DB::table('ripening_chamber_details as wid')
+            ->join('ripening_chamber as wi','wi.id','=','wid.pid')
+            ->where('wi.warehouse_inward_No', $warehouse_inward_No)
             ->where('wid.services', $row->services)
             ->where('wid.size', $row->size)
             ->where('wid.batch_number', $row->batch_number)
             ->when($request->inward_id, function($q) use ($request) {
                 $q->where('wid.pid', '!=', $request->inward_id);
             })
-            ->sum(DB::raw('wid.received_qty + wid.missing_qty'));
+            ->sum(DB::raw('wid.chamber_qty'));
 
         // Current row values for edit mode
         $currentEditReceived = 0;
-        $currentEditMissing = 0;
 
         if ($request->inward_id) {
-            $currentRow = DB::table('warehouse_inward_details')
+            $currentRow = DB::table('ripening_chamber_details')
                 ->where('pid', $request->inward_id)
                 ->where('services', $row->services)
                 ->where('size', $row->size)
                 ->where('batch_number', $row->batch_number)
                 ->first();
 
-            $currentEditReceived = $currentRow->received_qty ?? 0;
-            $currentEditMissing = $currentRow->missing_qty ?? 0;
+            $currentEditReceived = $currentRow->chamber_qty ?? 0;
         }
 
         // ✅ Remaining quantity = original quantity - sum(received + missing from other inwards)
         $remainingQty = $row->Quantity - $totalReceived;
 
-        // Skip if remaining <= 0
         if ($remainingQty <= 0) continue;
 
         $data[] = [
@@ -255,8 +146,7 @@ public function getOrderRecords(Request $request)
             'batch_number' => $row->batch_number,
             'Quantity' => $row->Quantity,
             'rem_qty' => $remainingQty,
-            'received_qty' => $currentEditReceived,
-            'missing_qty' => $currentEditMissing,
+            'chamber_qty' => $currentEditReceived,
         ];
     }
 
@@ -270,9 +160,7 @@ public function getOrderRecords(Request $request)
 
     return response()->json(['status' => 'success','data' => $data]);
 }
-// ==========================
-// 👉 Get Stock Report
-// ==========================
+
 public function stockReport(Request $request)
 {
     $locationId = $request->location_id;
@@ -429,17 +317,17 @@ public function getStock(Request $request)
      * @return \Illuminate\View\View
      */
 
-    public function edit(Warehouse_inward $Warehouse_inward)
+    public function edit(Ripening_Chamber $ripening_chamber)
     {
 
 
-        $invoice = DB::table('warehouse_inward')->where('id',  $Warehouse_inward->id)->first();
+        $invoice = DB::table('ripening_chamber')->where('id',  $ripening_chamber->id)->first();
 
-        $Warehouse_inward = Warehouse_inward::where('id', $Warehouse_inward->id)->first();
+        $ripening_chamber = Ripening_Chamber::where('id', $ripening_chamber->id)->first();
 
-        $Warehouse_inward_details = Warehouse_inward_details::where('pid', $Warehouse_inward->id)->get();
+        $ripening_chamber_details = Ripening_Chamber_details::where('pid', $ripening_chamber->id)->get();
 
-        return view('admin.warehouse_inward.edit', ['Warehouse_inward' => $Warehouse_inward],compact('Warehouse_inward','Warehouse_inward_details','invoice'));
+        return view('admin.ripening_chamber.edit', ['ripening_chamber' => $ripening_chamber],compact('ripening_chamber','ripening_chamber_details','invoice'));
 
     }
 
@@ -450,9 +338,9 @@ public function getStock(Request $request)
      * @param farm_inward $inward
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, Warehouse_inward $Warehouse_inward)
+    public function update(Request $request, Ripening_Chamber $ripening_chamber)
     {
-        return $this->repository->update($request->all(), $Warehouse_inward->id);
+        return $this->repository->update($request->all(), $ripening_chamber->id);
     }
 
     /**
@@ -462,11 +350,14 @@ public function getStock(Request $request)
      * @param farm_inward $inward
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Request $request, Warehouse_inward $Warehouse_inward)
+    public function destroy(Request $request, Ripening_Chamber $ripening_chamber)
     {
-        return $this->repository->destroy($Warehouse_inward->id);
+        return $this->repository->destroy($ripening_chamber->id);
     }
-
+    public function getData(Ripening_ChamberDataTable $dataTable)
+    {
+        return $dataTable->ajax();
+    }
 
     public function FarmDCBill(Request $request)
 {

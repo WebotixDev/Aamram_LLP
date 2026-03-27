@@ -11,7 +11,7 @@
         <div class="page-title">
             <div class="row">
                 <div class="col-6">
-                    <h4>Warehouse Inward</h4>
+                    <h4>Ripening Chamber</h4>
                 </div>
                 <div class="col-6">
                     <ol class="breadcrumb">
@@ -19,7 +19,7 @@
                                 <svg class="stroke-icon">
                                     <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
                                 </svg></a></li>
-                        <li class="breadcrumb-item">Warehouse Inward</li>
+                        <li class="breadcrumb-item">Ripening Chamber</li>
                         <li class="breadcrumb-item active">Edit</li>
                     </ol>
                 </div>
@@ -33,10 +33,10 @@
                 <div class="card height-equal">
 
                     <div class="card-body">
-                        <form class="row g-3 custom-input" id="userForm" action="{{ route('admin.warehouse_inward.update', $Warehouse_inward->id) }}" method="POST" enctype="multipart/form-data">
+                        <form class="row g-3 custom-input" id="userForm" action="{{ route('admin.ripening_chamber.update', $ripening_chamber->id) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
-                            @include('admin.warehouse_inward.fields') <!-- Make sure you have the district fields -->
+                            @include('admin.ripening_chamber.fields') <!-- Make sure you have the district fields -->
                         </form>
                     </div>
                 </div>

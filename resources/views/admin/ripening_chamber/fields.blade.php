@@ -62,26 +62,26 @@
     <div class="row">
 
         <div class="form-group col-md-3">
-            <label>Receive Location <span class="required" style="color:red;">*</span></label>
+            <label>Location <span class="required" style="color:red;">*</span></label>
             <select class="form-select select2" id="receive_location_id" name="receive_location_id"
                 data-placeholder="Select Location" required>
 
                 <option value="">Select Location</option>
 
                 @foreach (DB::table('location')->get() as $location)
-                    <option value="{{ $location->id }}" @if (isset($Warehouse_inward->receive_location_id) && $Warehouse_inward->receive_location_id == $location->id) selected @endif>
+                    <option value="{{ $location->id }}" @if (isset($ripening_chamber->receive_location_id) && $ripening_chamber->receive_location_id == $location->id) selected @endif>
                         {{ $location->location }}
                     </option>
                 @endforeach
 
             </select>
-            <input type="hidden" id="original_location_id" value="{{ $Warehouse_inward->receive_location_id ?? '' }}">
-            <input type="hidden" id="original_invoice" value="{{ $Warehouse_inward->Invoicenumber ?? '' }}">
-            <input type="hidden" id="original_invoice_no" value="{{ $Warehouse_inward->invoice_no ?? '' }}">
+            <input type="hidden" id="original_location_id" value="{{ $ripening_chamber->receive_location_id ?? '' }}">
+            <input type="hidden" id="original_invoice" value="{{ $ripening_chamber->Invoicenumber ?? '' }}">
+            <input type="hidden" id="original_invoice_no" value="{{ $ripening_chamber->invoice_no ?? '' }}">
         </div>
 
         <div class="form-group col-md-3">
-            <label for="Invoicenumber">Warehouse Inward No <span class="required">*</span></label>
+            <label for="Invoicenumber">Ripening Chamber No <span class="required">*</span></label>
             <input type="text" name="Invoicenumber" value="{{ old('Invoicenumber', $invoiceValue) }}"
                 class="form-control" readonly>
             <input type="hidden" name="invoice_no" value="{{ old('invoice_no', $invoiceNumber) }}">
@@ -90,10 +90,10 @@
 
 
         <div class="form-group col-md-3">
-            <label>Warehouse Inward Date <span class="required" style="color:red;">*</span></label>
+            <label>Ripening Chamber Date <span class="required" style="color:red;">*</span></label>
 
             <input class="datepicker-here form-control" id="billdate" name="billdate" type="text"
-                value="{{ isset($Warehouse_inward->billdate) ? \Carbon\Carbon::parse($Warehouse_inward->billdate)->format('d-m-Y') : old('billdate') ?? date('d-m-Y') }}"
+                value="{{ isset($ripening_chamber->billdate) ? \Carbon\Carbon::parse($ripening_chamber->billdate)->format('d-m-Y') : old('billdate') ?? date('d-m-Y') }}"
                 data-language="en" placeholder="Enter Date" data-date-format="dd-mm-yyyy" data-auto-close="true">
             @error('billdate')
                 <span class="text-danger"><strong>{{ $message }}</strong></span>
@@ -105,9 +105,9 @@
 
 
  <div class="form-group col-md-3">
-    <label>Delivery Challan Number <span class="required" style="color:red;">*</span></label>
-    <input type="text" id="farm_dcNo" name="farm_dcNo" onblur="hideshow()"
-        value="{{ old('farm_dcNo', $Warehouse_inward->farm_dcNo ?? 'FARMDC-') }}"
+    <label>Warehouse Inward Number <span class="required" style="color:red;">*</span></label>
+    <input type="text" id="warehouse_inward_No" name="warehouse_inward_No" onblur="hideshow()"
+        value="{{ old('warehouse_inward_No', $ripening_chamber->warehouse_inward_No ?? 'WAREIN-') }}"
         class="form-control">
 </div>
     </div>
@@ -128,14 +128,13 @@
                                 <th width='12%'>BATCH NO</th>
                                 <th width='10%'>QUANTITY<span class="required" style="color:red;">*</span></th>
                                 <th width='10%'>REM_QTY</th>
-                                <th width='10%'>RECEIVED QTY<span class="required" style="color:red;">*</span></th>
-                                <th width='10%'>MISSING QTY<span class="required" style="color:red;">*</span></th>
+                                <th width='10%'>CHAMBER QTY<span class="required" style="color:red;">*</span></th>
 
                             </tr>
                         </thead>
                         <tbody id="recordsTableBody">
-                            @if (isset($Warehouse_inward_details))
-                                @foreach ($Warehouse_inward_details as $index => $detail)
+                            @if (isset($ripening_chamber_details))
+                                @foreach ($ripening_chamber_details as $index => $detail)
                                     @php
                                         $product = DB::table('products')->where('id', $detail->services)->first();
                                         $product_name = $product ? $product->product_name : 'Unknown Product';
@@ -165,12 +164,8 @@
                                         <td><input type="text" name="rem_qty[]" value="{{ $detail->rem_qty }}"
                                                 readonly></td>
                                         <td>
-                                            <input type="text" name="received_qty[]"
-                                                value="{{ $detail->received_qty }}" required>
-                                        </td>
-                                        <td>
-                                            <input type="text" name="missing_qty[]"
-                                                value="{{ $detail->missing_qty }}" required>
+                                            <input type="text" name="chamber_qty[]"
+                                                value="{{ $detail->chamber_qty }}" required>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -224,7 +219,7 @@
         });
 
         // ✅ Trigger hideshow automatically if edit mode (farm_dcNo has value)
-        if ($('#farm_dcNo').val() != '') {
+        if ($('#warehouse_inward_No').val() != '') {
             hideshow();
         }
     });
@@ -243,7 +238,7 @@
 
         // Fetch new invoice/batch for different location
         $.ajax({
-            url: "{{ route('admin.warehouse_inward.get-invoice') }}",
+            url: "{{ route('admin.ripening_chamber.get-invoice') }}",
 
             type: "GET",
             data: {
@@ -261,10 +256,9 @@
 
     function validateQuantitiesforindex(index) {
         var remQty = parseFloat(document.getElementsByName('rem_qty[]')[index].value) || 0;
-        var receivedQty = parseFloat(document.getElementsByName('received_qty[]')[index].value) || 0;
-        var missingQty = parseFloat(document.getElementsByName('missing_qty[]')[index].value) || 0;
+        var receivedQty = parseFloat(document.getElementsByName('chamber_qty[]')[index].value) || 0;
 
-        var totalQty = receivedQty + missingQty;
+        var totalQty = receivedQty;
 
         if (totalQty > remQty) {
             // Adjust missingQty if total exceeds remaining
@@ -286,7 +280,7 @@
     //                 type: "GET",
     //                 data: {
     //                     farm_dcNo: farm_dcNo, // Pass order ID
-    //                     inward_id: "{{ $Warehouse_inward->id ?? '' }}", // ✅ ADD THIS LINE
+    //                     inward_id: "{{ $ripening_chamber->id ?? '' }}", // ✅ ADD THIS LINE
     //                     _token: "{{ csrf_token() }}" // Send CSRF token
     //                 },
     //                 success: function(response) {
@@ -364,19 +358,19 @@
     let alreadyAlerted = false; // flag
 
     function hideshow() {
-        const farm_dcNo = $('#farm_dcNo').val();
+        const warehouse_inward_No = $('#warehouse_inward_No').val();
 
-        if (!farm_dcNo) {
+        if (!warehouse_inward_No) {
             resetTable();
             return;
         }
 
         $.ajax({
-            url: "{{ route('admin.Farm-DC-getOrderRecords') }}",
+            url: "{{ route('admin.ripening_chamber-getOrderRecords') }}",
             type: "GET",
             data: {
-                farm_dcNo: farm_dcNo,
-                inward_id: "{{ $Warehouse_inward->id ?? '' }}",
+                warehouse_inward_No: warehouse_inward_No,
+                inward_id: "{{ $ripening_chamber->id ?? '' }}",
                 _token: "{{ csrf_token() }}"
             },
             success: function(response) {
@@ -418,11 +412,9 @@
                                 <input type="text"  name="rem_qty[]" value="${info.rem_qty}" readonly/>
                             </td>
                             <td>
-                                <input type="text"  name="received_qty[]" value="${info.received_qty ?? ''}" oninput="validateQuantitiesforindex(${index})" required/>
+                                <input type="text"  name="chamber_qty[]" value="${info.chamber_qty ?? ''}" oninput="validateQuantitiesforindex(${index})" required/>
                             </td>
-                          <td>
-    <input type="text"  name="missing_qty[]" value="${info.missing_qty ?? 0}"  oninput="validateQuantitiesforindex(${index})" id="missing_qty${index}" required/>
-</td>
+
                         </tr>`;
                     });
                     $('#recordsTableBody').html(tableBody);
@@ -437,7 +429,7 @@
     }
 
 
-    $('#farm_dcNo').on('keypress', function(e) {
+    $('#warehouse_inward_No').on('keypress', function(e) {
     if (e.which === 13) { // Enter key
         e.preventDefault(); // रोकता है form submit
         hideshow(); // call your function

@@ -117,7 +117,7 @@ $nextBillNo = $lastBillNo ? $lastBillNo + 1 : 1;
                     ?>
                             <tr id="row">
 
-                                           @php
+           @php
 
     // Fetch product name based on service ID
     $product = DB::table('products')->where('id', $outwardsdetails->services)->first();

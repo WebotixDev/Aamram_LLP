@@ -112,7 +112,7 @@
 
 
                   @can('farm_outward.index')
-            <li class="sidebar-list {{ request()->routeIs('admin.farm_inward.*') || request()->routeIs('admin.Farm_Delivery_challan.*') ? 'active' : '' }}">
+            <li class="sidebar-list {{ request()->routeIs('admin.farm_inward.*') || request()->routeIs('admin.Farm_Delivery_challan.*')  || request()->routeIs('admin.warehouse_inward.*') || request()->routeIs('admin.ripening_chamber.*')? 'active' : '' }}">
 
                 <a class="sidebar-link sidebar-title" href="javascript:void(0)">
                     <svg class="stroke-icon">
@@ -124,13 +124,25 @@
                 <ul class="sidebar-submenu">
                     <li class="{{ request()->routeIs('admin.farm_inward.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.farm_inward.index') }}">
-                            Farm Stock
+                            Farm Inward
                         </a>
                     </li>
 
                     <li class="{{ request()->routeIs('admin.Farm_Delivery_challan.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.Farm_Delivery_challan.index') }}">
                             Farm Delivery Challan
+                        </a>
+                    </li>
+
+
+                    <li class="{{ request()->routeIs('admin.warehouse_inward.*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.warehouse_inward.index') }}">
+                             Warehouse Inward
+                        </a>
+                    </li>
+                     <li class="{{ request()->routeIs('admin.ripening_chamber.*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.ripening_chamber.index') }}">
+                            Ripening Chamber
                         </a>
                     </li>
                 </ul>

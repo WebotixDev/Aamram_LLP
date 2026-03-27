@@ -11,7 +11,7 @@
         <div class="page-title">
             <div class="row">
                 <div class="col-6">
-                    <h4> Warehouse Inward <a href="{{ route('admin.warehouse_inward.index') }}" class="btn btn-secondary">{{ __('Show List') }}</a></h4>
+                    <h4> Ripening Chamber<a href="{{ route('admin.ripening_chamber.index') }}" class="btn btn-secondary">{{ __('Show List') }}</a></h4>
                 </div>
                 <div class="col-6">
                     <ol class="breadcrumb">
@@ -19,7 +19,7 @@
                                 <svg class="stroke-icon">
                                     <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
                                 </svg></a></li>
-                        <li class="breadcrumb-item">Warehouse Inward</li>
+                        <li class="breadcrumb-item">Ripening Chamber</li>
                         <li class="breadcrumb-item active">Create</li>
                     </ol>
                 </div>
@@ -33,9 +33,9 @@
                 <div class="card height-equal">
 
                     <div class="card-body">
-                        <form class="form theme-form" id="roleForm" action="{{ route('admin.warehouse_inward.store') }}" method="POST" enctype="multipart/form-data">
+                        <form class="form theme-form" id="roleForm" action="{{ route('admin.ripening_chamber.store') }}" method="POST" enctype="multipart/form-data">
                             @csrf
-                           @include('admin.warehouse_inward.fields');
+                           @include('admin.ripening_chamber.fields');
                     </div>
                 </div>
             </div>

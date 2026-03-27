@@ -245,4 +245,57 @@ public static function getMainStock($location_id, $service, $size, $stage, $batc
     return max($inward - $outward, 0);
 }
 
+  public static function getNextInvoiceForWarehouseInward($location_id)
+        {
+            return DB::transaction(function () use ($location_id) {
+
+                $location = DB::table('location')
+                    ->where('id', $location_id)
+                    ->first();
+
+                // First 4 letters of location
+                $prefix = strtoupper(substr($location->location, 0, 4));
+
+                $last = DB::table('warehouse_inward')
+                    ->where('receive_location_id', $location_id)
+                    ->lockForUpdate()
+                    ->orderBy('invoice_no', 'desc')
+                    ->first();
+
+                $next = $last ? $last->invoice_no + 1 : 1;
+
+                return [
+                    'number' => $next,
+                    'formatted' => 'WAREIN-' . $prefix . str_pad($next, 3, '0', STR_PAD_LEFT)
+                ];
+            });
+        }
+
+
+public static function getNextInvoiceForRipening($location_id)
+        {
+            return DB::transaction(function () use ($location_id) {
+
+                $location = DB::table('location')
+                    ->where('id', $location_id)
+                    ->first();
+
+                // First 4 letters of location
+                $prefix = strtoupper(substr($location->location, 0, 4));
+
+                $last = DB::table('ripening_chamber')
+                    ->where('receive_location_id', $location_id)
+                    ->lockForUpdate()
+                    ->orderBy('invoice_no', 'desc')
+                    ->first();
+
+                $next = $last ? $last->invoice_no + 1 : 1;
+
+                return [
+                    'number' => $next,
+                    'formatted' => 'RIPECHAM-' . $prefix . str_pad($next, 3, '0', STR_PAD_LEFT)
+                ];
+            });
+        }
+
 }
