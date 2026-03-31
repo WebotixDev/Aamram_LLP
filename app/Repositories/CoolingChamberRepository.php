@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Models\Warehouse_inward;
-use App\Models\Warehouse_inward_details;
+use App\Models\Cooling_Chamber;
+use App\Models\Cooling_Chamber_details;
 use App\Models\Product_details;
 use App\Models\Location;
 use App\Models\Transporter;
@@ -14,14 +14,14 @@ use Illuminate\Support\Facades\DB;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Carbon\Carbon;
 
-class WarehouseInwardRepository extends BaseRepository
+class CoolingChamberRepository extends BaseRepository
 {
     /**
      * Define the model class for the repository.
      */
     public function model()
     {
-        return Warehouse_inward::class;
+        return Cooling_Chamber::class;
     }
 
     /**
@@ -42,7 +42,7 @@ class WarehouseInwardRepository extends BaseRepository
     $loname = $locationname ? $locationname->location : null;
 
 
-        $invoice = \App\Helpers\Helpers::getNextInvoiceForWarehouseInward($request->receive_location_id);
+        $invoice = \App\Helpers\Helpers::getNextInvoiceForCooling($request->receive_location_id);
 
         $invoiceNumber = $invoice['formatted'];
 
@@ -51,7 +51,7 @@ class WarehouseInwardRepository extends BaseRepository
             $inward = [
                 'user_id'    => Auth::id(),
                 'billdate' => $billDate,
-                'farm_dcNo'=> $request->farm_dcNo,
+                'ripening_chamber_No'=> $request->ripening_chamber_No,
                 'receive_location_id'=> $request->receive_location_id,
                 'receive_location_name'    =>$loname,
                 'Invoicenumber' => $invoiceNumber,
@@ -63,22 +63,20 @@ class WarehouseInwardRepository extends BaseRepository
 
             ];
 
-                $inwardId = Warehouse_inward::insertGetId($inward);
+                $inwardId = Cooling_Chamber::insertGetId($inward);
 
                $services = $request->services;
                 $sizes = $request->size;
                 $stages = $request->stage;
                 $quantities = $request->Quantity;
                 $batches = $request->batch_number;
-                $receivedQty = $request->received_qty;
-                $missingqty = $request->missing_qty ?? [];
+                $chamber_qty = $request->chamber_qty;
 
                 for ($i = 0; $i < count($services); $i++) {
 
-    $received = $receivedQty[$i] ?? 0;
-    $missing = $missingQty[$i] ?? 0;
+    $received = $chamber_qty[$i] ?? 0;
 
-    if ($received == 0 && $missing == 0) {
+    if ($received == 0) {
         continue;
     }
                     $sizeData = Product_details::find($sizes[$i]);
@@ -93,19 +91,18 @@ class WarehouseInwardRepository extends BaseRepository
                         'stage'      => $stages[$i],
                         'Quantity'   => $quantities[$i],
                         'batch_number' => $batches[$i],
-                        'received_qty' => $receivedQty[$i] ?? 0,
-                    'missing_qty' => $missingqty[$i] ?? 0, // ✅ SAFE
+                        'chamber_qty' => $chamber_qty[$i] ?? 0,
                         'update_id'  => Auth::id(),
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
 
-                    Warehouse_inward_details::create($inwardDetailData);
+                    Cooling_Chamber_details::create($inwardDetailData);
                 }
 
 
                             DB::commit();
-                            return redirect()->route('admin.warehouse_inward.index')->with('success', __('Warehouse Inward Created Successfully'));
+                            return redirect()->route('admin.cooling_chamber.index')->with('success', __('Cooling Chamber Created Successfully'));
                         } catch (Exception $e) {
                             DB::rollback();
                             throw $e;
@@ -117,7 +114,6 @@ class WarehouseInwardRepository extends BaseRepository
      */
 public function update(array $request, $id)
 {
-
     DB::beginTransaction();
 
     try {
@@ -131,7 +127,7 @@ public function update(array $request, $id)
         $originalLocation = $request['original_location_id'] ?? null;
 
         if ($location != $originalLocation) {
-            $invoice = \App\Helpers\Helpers::getNextInvoiceForWarehouseInward($location);
+            $invoice = \App\Helpers\Helpers::getNextInvoiceForCooling($location);
             $invoiceNumber = $invoice['formatted'];
             $invoice_no = $invoice['number'];
         } else {
@@ -145,9 +141,9 @@ public function update(array $request, $id)
         $locationName = $locationData ? $locationData->location : null;
 
         // ✅ UPDATE MAIN TABLE
-        Warehouse_inward::where('id', $id)->update([
+        Cooling_Chamber::where('id', $id)->update([
             'billdate' => $billDate,
-            'farm_dcNo' => $request['farm_dcNo'],
+            'ripening_chamber_No' => $request['ripening_chamber_No'],
             'receive_location_id' => $location,
             'receive_location_name' => $locationName,
             'Invoicenumber' => $invoiceNumber,
@@ -158,7 +154,7 @@ public function update(array $request, $id)
         ]);
 
         // ✅ DELETE OLD DETAILS
-        Warehouse_inward_details::where('pid', $id)->delete();
+        Cooling_Chamber_details::where('pid', $id)->delete();
 
         // ✅ INSERT NEW DETAILS
         $services = $request['services'] ?? [];
@@ -166,24 +162,22 @@ public function update(array $request, $id)
         $stages = $request['stage'] ?? [];
         $quantities = $request['Quantity'] ?? [];
         $batches = $request['batch_number'] ?? [];
-        $receivedQty = $request['received_qty'] ?? [];
-        $missingQty = $request['missing_qty'] ?? [];
+        $chamber_qty = $request['chamber_qty'] ?? [];
 
         for ($i = 0; $i < count($services); $i++) {
 
 
 
-    $received = $receivedQty[$i] ?? 0;
-    $missing = $missingQty[$i] ?? 0;
+    $received = $chamber_qty[$i] ?? 0;
 
     // Skip this row if both received and missing qty are 0
-    if ($received == 0 && $missing == 0) {
+    if ($received == 0) {
         continue;
     }
             $sizeData = Product_details::find($sizes[$i]);
             $size_name = $sizeData ? $sizeData->product_size : null;
 
-            Warehouse_inward_details::create([
+            Cooling_Chamber_details::create([
                 'pid' => $id,
                 'services' => $services[$i],
                 'size' => $sizes[$i],
@@ -191,8 +185,7 @@ public function update(array $request, $id)
                 'stage' => $stages[$i] ?? null,
                 'Quantity' => $quantities[$i] ?? 0,
                 'batch_number' => $batches[$i] ?? null,
-                'received_qty' => $receivedQty[$i] ?? 0,
-                'missing_qty' => $missingQty[$i] ?? 0,
+                'chamber_qty' => $chamber_qty[$i] ?? 0,
                 'user_id' => Auth::id(),
                 'update_id' => Auth::id(),
                 'created_at' => now(),
@@ -202,8 +195,8 @@ public function update(array $request, $id)
 
         DB::commit();
 
-        return redirect()->route('admin.warehouse_inward.index')
-            ->with('success', __('Warehouse Inward Challan Updated Successfully'));
+        return redirect()->route('admin.cooling_chamber.index')
+            ->with('success', __('Cooling Chamber Updated Successfully'));
 
     } catch (\Exception $e) {
         DB::rollback();
@@ -220,12 +213,12 @@ public function update(array $request, $id)
         try {
             $inward = $this->model->findOrFail($id);
             // Delete associated inward details
-            Warehouse_inward_details::where('pid', $inward->id)->delete();
+            Cooling_Chamber_details::where('pid', $inward->id)->delete();
             // Delete the inward record
             $inward->delete();
 
             DB::commit();
-            return redirect()->back()->with('success', __('Warehouse Inward Deleted Successfully'));
+            return redirect()->back()->with('success', __('Cooling Chamber Deleted Successfully'));
         } catch (Exception $e) {
             DB::rollback();
             throw $e;

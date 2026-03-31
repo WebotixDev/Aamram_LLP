@@ -86,7 +86,93 @@ public function getBatchByLocationForStock(Request $request)
     ]);
 }
 
+// public function getRipeningChambers(Request $request)
+// {
+//     $data = \App\Models\Warehouse_inward::where('receive_location_id', $request->location_id)
+//         ->select('Invoicenumber')
+//         ->distinct()
+//         ->get();
 
+//     return response()->json([
+//         'data' => $data
+//     ]);
+// }
+
+
+public function getRipeningChambers(Request $request)
+{
+    $locationId = $request->location_id;
+
+    // 🔹 Step 1: Get warehouse stock details
+    $warehouse = DB::table('warehouse_inward_details as wid')
+        ->join('warehouse_inward as wi', 'wi.id', '=', 'wid.pid')
+        ->when($locationId, fn($q) => $q->where('wi.receive_location_id', $locationId))
+        ->select(
+            'wi.Invoicenumber',
+            'wi.receive_location_id',
+            'wid.services',
+            'wid.size',
+            'wid.stage',
+            'wid.batch_number',
+        DB::raw('SUM(wid.received_qty) as inward_qty')
+        )
+        ->groupBy(
+            'wi.Invoicenumber',
+            'wi.receive_location_id',
+            'wid.services',
+            'wid.size',
+            'wid.stage',
+            'wid.batch_number'
+        )
+        ->get();
+
+    // 🔹 Step 2: Get outward quantities from ripening chamber
+    $ripening = DB::table('ripening_chamber_details as rcd')
+        ->join('ripening_chamber as rc', 'rc.id', '=', 'rcd.pid')
+        ->select(
+            'rc.warehouse_inward_No',
+            'rc.receive_location_id',
+            'rcd.services',
+            'rcd.size',
+            'rcd.stage',
+            'rcd.batch_number',
+            DB::raw('SUM(rcd.chamber_qty) as outward_qty')
+        )
+        ->groupBy(
+            'rc.warehouse_inward_No',
+            'rc.receive_location_id',
+            'rcd.services',
+            'rcd.size',
+            'rcd.stage',
+            'rcd.batch_number'
+        )
+        ->get();
+
+    // 🔹 Step 3: Build ripening map
+    $ripeningMap = [];
+    foreach ($ripening as $r) {
+        $key = $r->warehouse_inward_No . '_' . $r->receive_location_id . '_' . $r->services . '_' . $r->size . '_' . $r->stage . '_' . $r->batch_number;
+        $ripeningMap[$key] = $r->outward_qty;
+    }
+
+    // 🔹 Step 4: Collect invoices with remaining stock > 0
+    $invoiceSet = [];
+    foreach ($warehouse as $w) {
+        $key = $w->Invoicenumber . '_' . $w->receive_location_id . '_' . $w->services . '_' . $w->size . '_' . $w->stage . '_' . $w->batch_number;
+        $outwardQty = $ripeningMap[$key] ?? 0;
+        $remaining = max($w->inward_qty - $outwardQty, 0);
+
+        if ($remaining > 0) {
+            $invoiceSet[$w->Invoicenumber] = true; // use associative array to avoid duplicates
+        }
+    }
+
+    $data = array_keys($invoiceSet); // only invoices with stock
+
+    return response()->json([
+        'data' => $data
+    ]);
+}
 public function getOrderRecords(Request $request)
 {
     $warehouse_inward_No = $request->warehouse_inward_No;
@@ -133,7 +219,7 @@ public function getOrderRecords(Request $request)
         }
 
         // ✅ Remaining quantity = original quantity - sum(received + missing from other inwards)
-        $remainingQty = $row->Quantity - $totalReceived;
+        $remainingQty = $row->received_qty - $totalReceived;
 
         if ($remainingQty <= 0) continue;
 
@@ -144,7 +230,7 @@ public function getOrderRecords(Request $request)
             'p_size' => $size->product_size ?? '',
             'stage' => $row->stage,
             'batch_number' => $row->batch_number,
-            'Quantity' => $row->Quantity,
+            'Quantity' => $row->received_qty,
             'rem_qty' => $remainingQty,
             'chamber_qty' => $currentEditReceived,
         ];
@@ -161,78 +247,191 @@ public function getOrderRecords(Request $request)
     return response()->json(['status' => 'success','data' => $data]);
 }
 
-public function stockReport(Request $request)
+ public function Ripeningstock()
+    {
+        $locations = DB::table('location')
+            ->select('id', 'location')
+            ->get();
+
+        return view('admin.ripening_chamber.ripeningstock', compact('locations'));
+    }
+
+    // Get data for DataTable
+//    public function getStock(Request $request)
+// {
+//     $locationId = $request->location_id;
+//     $warehouseNo = $request->warehouse_inward_No;
+
+//     // Fetch all inward details with product info
+//     $inwardDetails = \App\Models\Warehouse_inward_details::select(
+//         'warehouse_inward_details.id',
+//         'warehouse_inward_details.pid',
+//         'warehouse_inward_details.services',
+//         'warehouse_inward_details.size',
+//         'warehouse_inward_details.stage',
+//         'warehouse_inward_details.batch_number',
+//         'warehouse_inward_details.received_qty',
+//         'warehouse_inward_details.missing_qty',
+//         'product_details.product_size',
+//         'products.product_name',
+//         'warehouse_inward.receive_location_name',
+//         'warehouse_inward.Invoicenumber'
+//     )
+//     ->join('warehouse_inward', 'warehouse_inward.id', '=', 'warehouse_inward_details.pid')
+//     ->join('product_details', 'product_details.id', '=', 'warehouse_inward_details.size')
+//     ->join('products', 'products.id', '=', 'warehouse_inward_details.services')
+//     ->when($locationId, fn($q) => $q->where('warehouse_inward.receive_location_id', $locationId))
+//     ->when($warehouseNo, fn($q) => $q->where('warehouse_inward.Invoicenumber', $warehouseNo))
+//     ->get();
+
+//     $data = [];
+
+//     foreach ($inwardDetails as $row) {
+//         // Total outward (ripening chamber) qty
+//         $outwardQty = \App\Models\Ripening_Chamber_details::join('ripening_chamber', 'ripening_chamber.id', '=', 'ripening_chamber_details.pid')
+//             ->where('ripening_chamber.warehouse_inward_No', $row->Invoicenumber)
+//             ->where('ripening_chamber_details.services', $row->services)
+//             ->where('ripening_chamber_details.size', $row->size)
+//             ->where('ripening_chamber_details.stage', $row->stage)
+//             ->where('ripening_chamber_details.batch_number', $row->batch_number)
+//             ->sum('ripening_chamber_details.chamber_qty');
+
+//         $currentStock = ($row->received_qty ?? 0) - ($outwardQty ?? 0) - ($row->missing_qty ?? 0);
+
+//         $data[] = [
+//             'warehouse_No'     => $row->Invoicenumber,
+//             'location_name'    => $row->receive_location_name,
+//             'service_name'     => $row->product_name,
+//             'size_name'        => $row->product_size,
+//             'stage'            => $row->stage,
+//             'batch_number'     => $row->batch_number,
+//             'inward_qty'       => $row->received_qty,
+//             'outward_qty'      => $outwardQty,
+//             'remaining_qty'    => $currentStock,
+//         ];
+//     }
+
+//     return response()->json([
+//         'status' => 'success',
+//         'data' => $data
+//     ]);
+// }
+
+
+public function getStock(Request $request)
 {
     $locationId = $request->location_id;
-    $farmDcNo   = $request->farm_dcNo;
+    $warehouseNo = $request->warehouse_inward_No;
 
-    $records = DB::table('farm_delivery_challan_details as fdc')
-        ->join('farm_delivery_challan as fc', 'fc.id', '=', 'fdc.pid')
+    // 🔹 Step 1: Warehouse Data
+    $warehouse = \DB::table('warehouse_inward_details as wid')
+        ->join('warehouse_inward as wi', 'wi.id', '=', 'wid.pid')
+        ->join('products as p', 'p.id', '=', 'wid.services')
+        ->join('product_details as pd', 'pd.id', '=', 'wid.size')
 
-        ->leftJoin('warehouse_inward_details as wid', function ($join) {
-            $join->on('wid.services', '=', 'fdc.services')
-                 ->on('wid.size', '=', 'fdc.size')
-                 ->on('wid.batch_number', '=', 'fdc.batch_number');
-        })
-
-        ->leftJoin('warehouse_inward as wi', 'wi.id', '=', 'wid.pid')
-
-        ->leftJoin('products as p', 'p.id', '=', 'fdc.services')
-        ->leftJoin('product_details as pd', 'pd.id', '=', 'fdc.size')
-
-        ->select(
-            'wi.receive_location_name',
-            'fc.Invoicenumber as farm_dcNo',
-            'p.product_name',
-            'pd.product_size',
-            'fdc.stage',
-            'fdc.batch_number',
-
-            DB::raw('SUM(fdc.Quantity) as challan_qty'),
-            DB::raw('COALESCE(SUM(wid.received_qty),0) as total_received'),
-            DB::raw('COALESCE(SUM(wid.missing_qty),0) as total_missing'),
-
-            DB::raw('(SUM(fdc.Quantity) - COALESCE(SUM(wid.received_qty + wid.missing_qty),0)) as remaining_qty')
+        ->when($locationId, fn($q) =>
+            $q->where('wi.receive_location_id', $locationId)
         )
 
-        ->when($locationId, function ($q) use ($locationId) {
-            $q->where('wi.receive_location_id', $locationId);
-        })
+        ->when($warehouseNo, fn($q) =>
+            $q->where('wi.Invoicenumber', $warehouseNo)
+        )
 
-        ->when($farmDcNo, function ($q) use ($farmDcNo) {
-            $q->where('fc.Invoicenumber', $farmDcNo);
-        })
-
-        ->groupBy(
+        ->select(
+            'wi.Invoicenumber',
+            'wi.receive_location_id',
             'wi.receive_location_name',
-            'fc.Invoicenumber',
+            'wid.services',
+            'wid.size',
+            'wid.stage',
+            'wid.batch_number',
             'p.product_name',
             'pd.product_size',
-            'fdc.stage',
-            'fdc.batch_number'
+            \DB::raw('SUM(wid.received_qty) as inward_qty')
+        )
+
+        ->groupBy(
+            'wi.Invoicenumber',
+            'wi.receive_location_id',
+            'wi.receive_location_name',
+            'wid.services',
+            'wid.size',
+            'wid.stage',
+            'wid.batch_number',
+            'p.product_name',
+            'pd.product_size'
         )
         ->get();
 
+    // 🔹 Step 2: Ripening Data
+    $ripening = \DB::table('ripening_chamber_details as rcd')
+        ->join('ripening_chamber as rc', 'rc.id', '=', 'rcd.pid')
+
+        ->select(
+            'rc.warehouse_inward_No',
+            'rc.receive_location_id',
+            'rcd.services',
+            'rcd.size',
+            'rcd.stage',
+            'rcd.batch_number',
+            \DB::raw('SUM(rcd.chamber_qty) as outward_qty')
+        )
+
+        ->groupBy(
+            'rc.warehouse_inward_No',
+            'rc.receive_location_id',
+            'rcd.services',
+            'rcd.size',
+            'rcd.stage',
+            'rcd.batch_number'
+        )
+        ->get();
+
+    // 🔹 Step 3: Convert ripening to key map
+    $ripeningMap = [];
+
+    foreach ($ripening as $r) {
+        $key = $r->warehouse_inward_No . '_' .
+               $r->receive_location_id . '_' .
+               $r->services . '_' .
+               $r->size . '_' .
+               $r->stage . '_' .
+               $r->batch_number;
+
+        $ripeningMap[$key] = $r->outward_qty;
+    }
+
+    // 🔹 Step 4: Merge Data
     $data = [];
 
-    foreach ($records as $row) {
+    foreach ($warehouse as $w) {
+
+        $key = $w->Invoicenumber . '_' .
+               $w->receive_location_id . '_' .
+               $w->services . '_' .
+               $w->size . '_' .
+               $w->stage . '_' .
+               $w->batch_number;
+
+        $outwardQty = $ripeningMap[$key] ?? 0;
+        $remaining = max($w->inward_qty - $outwardQty, 0);
+
         $data[] = [
-            'location_name'   => $row->receive_location_name ?? 'N/A',
-            'farm_dcNo'       => $row->farm_dcNo,
-            'service_name'    => $row->product_name,
-            'size_name'       => $row->product_size,
-            'stage'           => $row->stage,
-            'batch_number'    => $row->batch_number,
-            'challan_qty'     => $row->challan_qty,
-            'total_received'  => $row->total_received,
-            'total_missing'   => $row->total_missing,
-            'remaining_qty'   => $row->remaining_qty,
+            'warehouse_No'   => $w->Invoicenumber,
+            'location_name'  => $w->receive_location_name,
+            'service_name'   => $w->product_name,
+            'size_name'      => $w->product_size,
+            'stage'          => $w->stage,
+            'batch_number'   => $w->batch_number,
+            'inward_qty'     => $w->inward_qty,
+            'outward_qty'    => $outwardQty,
+            'remaining_qty'  => $remaining,
         ];
     }
 
     return response()->json([
         'status' => 'success',
-        'data'   => $data
+        'data' => $data
     ]);
 }
     /**
@@ -282,21 +481,7 @@ public function getdetails(Request $request)
     ]);
 }
 
-public function getStock(Request $request)
-{
 
-    $service = $request->service;
-    $size = $request->size;
-    $stage = $request->stage;
-    $batch_number = $request->batch_number;
-
-    $stock = \App\Helpers\Helpers::getFarmStock($service, $size, $stage, $batch_number);
-
-    return response()->json([
-        'status' => 'success',
-        'stock' => $stock
-    ]);
-}
     /**
      * Display the specified inward record along with its details.
      *

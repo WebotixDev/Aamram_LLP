@@ -149,6 +149,8 @@ class Farm_DeliveryChallanDataTable extends DataTable
             ['data' => 'transporter_invoice', 'title' => __('Transporter-Invoice No')],
             ['data' => 'challan_date', 'title' => __('Challan Date'), 'orderable' => true, 'searchable' => true],
             ['data' => 'details', 'title' => __('Product Details'), 'orderable' => true, 'searchable' => true],
+           ['data' => 'to_location_name', 'title' => __('Transfer Location')],
+
             ['data' => 'action', 'title' => __('Action'), 'orderable' => false, 'searchable' => false],
         ];
     }

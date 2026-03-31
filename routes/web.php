@@ -161,7 +161,17 @@ Route::get('/get-type-product/{type}', [App\Http\Controllers\inward\InwardContro
     Route::get('ripening_chamber.get-invoice', [App\Http\Controllers\inward\RipeningChamberController::class, 'getInvoiceBatch']) ->name('ripening_chamber.get-invoice');
     Route::get('ripening_chamber-data', [App\Http\Controllers\inward\RipeningChamberController::class, 'getData'])->name('ripening_chamber.data');
     Route::get('ripening_chamber-get-order-records', [App\Http\Controllers\inward\RipeningChamberController::class, 'getOrderRecords'])->name('ripening_chamber-getOrderRecords');
+    Route::get('consolidated-stock-report', [App\Http\Controllers\inward\RipeningChamberController::class, 'Ripeningstock'])->name('ConsolidatedStockReport');
+    Route::get('consolidated-stock-report-data', [App\Http\Controllers\inward\RipeningChamberController::class, 'getStock'])->name('ConsolidatedStockReport.get-stock');
+Route::get('get-Warehouse-inward', [App\Http\Controllers\inward\RipeningChamberController::class, 'getRipeningChambers'])
+    ->name('Warehouse.getRipeningWarehouse');
 
+    Route::resource('cooling_chamber', App\Http\Controllers\inward\Cooling_ChamberController::class);
+    Route::get('cooling_chamber.get-invoice', [App\Http\Controllers\inward\Cooling_ChamberController::class, 'getInvoiceBatch']) ->name('cooling_chamber.get-invoice');
+    Route::get('cooling_chamber-get-order-records', [App\Http\Controllers\inward\Cooling_ChamberController::class, 'getOrderRecords'])->name('cooling_chamber-getOrderRecords');
+
+Route::get('get-cooling-chambers', [App\Http\Controllers\inward\Cooling_ChamberController::class, 'getRipeningChambers'])
+    ->name('cooling_chamber.getRipeningChambers');
     Route::resource('sale_order', App\Http\Controllers\Sale_order\Sale_orderController::class);
     Route::post('customers.store', [App\Http\Controllers\Sale_order\Sale_orderController::class,'customersstore'])->name('customers.store');
     Route::get('get-stock', [App\Http\Controllers\Sale_order\Sale_orderController::class,'getStock'])->name('sale_order.get-stock');

@@ -112,7 +112,7 @@
 
 
                   @can('farm_outward.index')
-            <li class="sidebar-list {{ request()->routeIs('admin.farm_inward.*') || request()->routeIs('admin.Farm_Delivery_challan.*')  || request()->routeIs('admin.warehouse_inward.*') || request()->routeIs('admin.ripening_chamber.*')? 'active' : '' }}">
+            <li class="sidebar-list {{ request()->routeIs('admin.farm_inward.*') || request()->routeIs('admin.Farm_Delivery_challan.*')  || request()->routeIs('admin.warehouse_inward.*') || request()->routeIs('admin.ripening_chamber.*') || request()->routeIs('admin.cooling_chamber.*')? 'active' : '' }}">
 
                 <a class="sidebar-link sidebar-title" href="javascript:void(0)">
                     <svg class="stroke-icon">
@@ -143,6 +143,12 @@
                      <li class="{{ request()->routeIs('admin.ripening_chamber.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.ripening_chamber.index') }}">
                             Ripening Chamber
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('admin.cooling_chamber.*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.cooling_chamber.index') }}">
+                            Cooling Chamber
                         </a>
                     </li>
                 </ul>

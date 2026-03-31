@@ -58,8 +58,8 @@
     <div class="page-title" style="padding:0px;">
         <div class="row">
             <div class="col-sm-6">
-                <h4> Ripening Chamber
-                        <a href="{{ route('admin.ripening_chamber.create') }}" class="btn btn-secondary">{{ __('Add') }}</a>
+                <h4> Cooling Chamber
+                        <a href="{{ route('admin.cooling_chamber.create') }}" class="btn btn-secondary">{{ __('Add') }}</a>
                    <a href="{{ route('admin.ConsolidatedStockReport') }}" class="btn btn-primary">{{ __('Ripening Stock') }}</a>
 
                     </h4>
@@ -70,7 +70,7 @@
                             <svg class="stroke-icon">
                                 <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
                             </svg></a></li>
-                    <li class="breadcrumb-item">Ripening Chamber</li>
+                    <li class="breadcrumb-item">Cooling Chamber</li>
                     <li class="breadcrumb-item active"></li>
                 </ol>
             </div>

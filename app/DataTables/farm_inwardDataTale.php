@@ -49,7 +49,7 @@ class farm_inwardDataTale extends DataTable
                 // Load related details for the current row
                 $details = $row->details; // Assuming 'details' is the relationship
                 $html = '<table class="table table-bordered small"><thead>';
-                $html .= '<tr><th>Products</th><th>Size</th><th>Stage</th><th>Rate</th><th>Quantity</th></tr></thead><tbody>';
+                $html .= '<tr><th>Products</th><th>Size</th><th>Stage</th><th>Batch</th><th>Rate</th><th>Quantity</th></tr></thead><tbody>';
 
                 foreach ($details as $detail) {
                     $productName = $detail->product->product_name ?? 'N/A'; // Fetch product name
@@ -59,6 +59,7 @@ class farm_inwardDataTale extends DataTable
                     $html .= "<td>{$productName}</td>";
                     $html .= "<td>{$detail->size_name}</td>";
                     $html .= "<td>{$detail->stage}</td>";
+                     $html .= "<td>{$detail->batch_number}</td>";
                     $html .= "<td>{$detail->rate}</td>";
                     $html .= "<td>{$detail->Quantity}</td>";
                     $html .= '</tr>';

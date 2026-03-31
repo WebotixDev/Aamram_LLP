@@ -5,14 +5,13 @@ namespace App\DataTables;
 use Carbon\Carbon;
 use App\Models\Farm_Delivery_challan;
 use App\Models\Warehouse_inward;
-
-use App\Models\farm_inward_details;
+use App\Models\Cooling_Chamber;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Services\DataTable;
 
-class WarehouseInwardDataTable extends DataTable
+class CoolingChamberDataTable extends DataTable
 {
     /**
      * Build the DataTable class.
@@ -50,7 +49,7 @@ class WarehouseInwardDataTable extends DataTable
                 // Load related details for the current row
                 $details = $row->details; // Assuming 'details' is the relationship
                 $html = '<table class="table table-bordered small"><thead>';
-                $html .= '<tr><th>Products</th><th>Size</th><th>Stage</th><th>Batch No</th><th>Quantity</th><th>Receive Qty</th></tr></thead><tbody>';
+                $html .= '<tr><th>Products</th><th>Size</th><th>Stage</th><th>Batch No</th><th>Ripening Quantity</th><th>Cooling Chamber Qty</th></tr></thead><tbody>';
 
                 foreach ($details as $detail) {
                     $productName = $detail->product->product_name ?? 'N/A'; // Fetch product name
@@ -62,7 +61,7 @@ class WarehouseInwardDataTable extends DataTable
                     $html .= "<td>{$detail->stage}</td>";
                     $html .= "<td>{$detail->batch_number}</td>";
                     $html .= "<td>{$detail->Quantity}</td>";
-                    $html .= "<td>{$detail->received_qty}</td>";
+                    $html .= "<td>{$detail->chamber_qty}</td>";
                     $html .= '</tr>';
                 }
 
@@ -72,17 +71,14 @@ class WarehouseInwardDataTable extends DataTable
                 ->editColumn('action', function ($row) {
 
                     $actionButtons = view('admin.inc.action', [
-                        'edit' => 'admin.warehouse_inward.edit',
-                        'delete' => 'admin.warehouse_inward.destroy',
+                        'edit' => 'admin.cooling_chamber.edit',
+                        'delete' => 'admin.cooling_chamber.destroy',
                         'data' => $row
                     ])->render();
 
-                    $printButton = '<a href="' . route('admin.FarmDCBill.print', ['id' => $row->id]) . '"
-                        target="_blank" title="Print" style="margin-left:5px;">
-                        <i class="fa fa-print" style="color:#0f5183; font-size:18px;"></i>
-                    </a>';
 
-                    return $actionButtons . $printButton;
+
+                    return $actionButtons;
                 })
 
             ->addColumn('transporter_invoice', function ($row) {
@@ -95,7 +91,7 @@ class WarehouseInwardDataTable extends DataTable
     /**
      * Get the query source of dataTable.
      */
-    public function query(Warehouse_inward $model): QueryBuilder
+    public function query(Cooling_Chamber $model): QueryBuilder
     {
         $fromDate = request()->get('from_date');
         $toDate = request()->get('to_date');
@@ -103,7 +99,7 @@ class WarehouseInwardDataTable extends DataTable
         $season = session('selected_season');
 
         $query = $model->newQuery()
-            ->select('warehouse_inward.*')
+            ->select('cooling_chamber.*')
             ->with(['details'])
             ->where('season', $season)
             ->orderBy('id', 'desc'); // ID DESC here
@@ -152,7 +148,7 @@ class WarehouseInwardDataTable extends DataTable
             ['data' => 'transporter_invoice', 'title' => __('Location-Invoice No')],
             ['data' => 'billdate', 'title' => __('Date'), 'orderable' => true, 'searchable' => true],
             ['data' => 'details', 'title' => __('Product Details'), 'orderable' => true, 'searchable' => true],
-           ['data' => 'farm_dcNo', 'title' => __('FarmDC NO'), 'orderable' => true, 'searchable' => true],
+            ['data' => 'ripening_chamber_No', 'title' => __('Ripening NO'), 'orderable' => true, 'searchable' => true],
             ['data' => 'action', 'title' => __('Action'), 'orderable' => false, 'searchable' => false],
         ];
     }

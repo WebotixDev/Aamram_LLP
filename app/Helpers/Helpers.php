@@ -298,4 +298,31 @@ public static function getNextInvoiceForRipening($location_id)
             });
         }
 
+
+public static function getNextInvoiceForCooling($location_id)
+        {
+            return DB::transaction(function () use ($location_id) {
+
+                $location = DB::table('location')
+                    ->where('id', $location_id)
+                    ->first();
+
+                // First 4 letters of location
+                $prefix = strtoupper(substr($location->location, 0, 4));
+
+                $last = DB::table('cooling_chamber')
+                    ->where('receive_location_id', $location_id)
+                    ->lockForUpdate()
+                    ->orderBy('invoice_no', 'desc')
+                    ->first();
+
+                $next = $last ? $last->invoice_no + 1 : 1;
+
+                return [
+                    'number' => $next,
+                    'formatted' => 'COOLCHAM-' . $prefix . str_pad($next, 3, '0', STR_PAD_LEFT)
+                ];
+            });
+        }
+
 }

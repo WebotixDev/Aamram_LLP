@@ -75,9 +75,15 @@
                 @endforeach
 
             </select>
-            <input type="hidden" id="original_location_id" value="{{ $Warehouse_inward->receive_location_id ?? '' }}">
-            <input type="hidden" id="original_invoice" value="{{ $Warehouse_inward->Invoicenumber ?? '' }}">
-            <input type="hidden" id="original_invoice_no" value="{{ $Warehouse_inward->invoice_no ?? '' }}">
+
+<input type="hidden" name="original_location_id" id="original_location_id"
+    value="{{ $Warehouse_inward->receive_location_id ?? '' }}">
+
+<input type="hidden" name="original_invoice" id="original_invoice"
+    value="{{ $Warehouse_inward->Invoicenumber ?? '' }}">
+
+<input type="hidden" name="original_invoice_no" id="original_invoice_no"
+    value="{{ $Warehouse_inward->invoice_no ?? '' }}">
         </div>
 
         <div class="form-group col-md-3">
@@ -186,7 +192,7 @@
         <div class="col">
             <div class="text-center">
                 <button type="submit" class="btn btn-primary">{{ __('Save') }}</button> <a
-                    href="{{ route('admin.farm_inward.index') }}" class="btn btn-secondary">{{ __('Cancel') }}</a>
+                    href="{{ route('admin.warehouse_inward.index') }}" class="btn btn-secondary">{{ __('Cancel') }}</a>
             </div>
         </div>
     </div>
@@ -204,31 +210,49 @@
 <script src="{{ asset('assets/js/dropzone/dropzone.js') }}"></script>
 <script src="{{ asset('assets/js/dropzone/dropzone-script.js') }}"></script>
 
+
+
 <script>
-    $(document).ready(function() {
+$(document).ready(function() {
+    $(".select2").select2();
 
-        $(".select2").select2();
+  $("#receive_location_id").on("change", function() {
+    let location_id = $(this).val();
+    getInvoiceBatch(location_id);
 
+    // Trigger table update only if DC number is valid
+    let dcNo = $('#farm_dcNo').val().trim();
+    if (dcNo && dcNo !== 'FARMDC-') {
+        hideshow();
+    }
+});
+
+    // Trigger hideshow automatically if edit mode
+    if ($('#farm_dcNo').val() != '') {
+        hideshow();
+    }
+
+    // Reset alerts on DC number input change
+    $('#farm_dcNo').on('input', function() {
+        alreadyAlerted = false;
+        invalidLocationAlerted = false;
     });
-</script>
 
-<script>
-    $(document).ready(function() {
-
-        $(".select2").select2();
-
-        // Location change
-        $("#receive_location_id").on("change", function() {
-            let location_id = $(this).val();
-            getInvoiceBatch(location_id);
-        });
-
-        // ✅ Trigger hideshow automatically if edit mode (farm_dcNo has value)
-        if ($('#farm_dcNo').val() != '') {
-            hideshow();
+    // Clear default FARMDC- on focus
+    $('#farm_dcNo').on('focus', function() {
+        if ($(this).val() === 'FARMDC-') {
+            $(this).val('');
         }
     });
 
+    // Trigger hideshow on Enter key
+    $('#farm_dcNo').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            hideshow();
+        }
+    });
+});
 
     function getInvoiceBatch(location_id) {
         let originalLocation = $("#original_location_id").val();
@@ -360,89 +384,103 @@
     //     $('#farm_dcNo').on('keyup', function() {
     //     hideshow();
     // });
+let alreadyAlerted = false;
+let invalidLocationAlerted = false;
 
-    let alreadyAlerted = false; // flag
+function hideshow() {
+    const farm_dcNo = $('#farm_dcNo').val();
+    const location_id = $('#receive_location_id').val();
 
-    function hideshow() {
-        const farm_dcNo = $('#farm_dcNo').val();
+    if (!farm_dcNo || !location_id) {
+        $('#recordsTableBody').html('');
+        alreadyAlerted = false;
+        invalidLocationAlerted = false;
+        return;
+    }
 
-        if (!farm_dcNo) {
-            resetTable();
-            return;
-        }
-
-        $.ajax({
-            url: "{{ route('admin.Farm-DC-getOrderRecords') }}",
-            type: "GET",
-            data: {
-                farm_dcNo: farm_dcNo,
-                inward_id: "{{ $Warehouse_inward->id ?? '' }}",
-                _token: "{{ csrf_token() }}"
-            },
-            success: function(response) {
-
-                if (response.status === 'empty') {
-                    $('#recordsTableBody').html('');
-                    if (!alreadyAlerted) {
-                        alert('This challan already fully added to warehouse');
-                        alreadyAlerted = true; // ✅ prevent repeated alerts
-                    }
-                    return;
+    $.ajax({
+        url: "{{ route('admin.Farm-DC-getOrderRecords') }}",
+        type: "GET",
+        data: {
+            farm_dcNo: farm_dcNo,
+            inward_id: "{{ $Warehouse_inward->id ?? '' }}",
+            location_id: location_id,
+            _token: "{{ csrf_token() }}"
+        },
+        success: function(response) {
+            if (response.status === 'invalid_location') {
+                $('#recordsTableBody').html('');
+                if (!invalidLocationAlerted) {
+                    alert(response.message);
+                    invalidLocationAlerted = true;
                 }
+                alreadyAlerted = false;
+                return;
+            }
 
-                alreadyAlerted = false; // reset if new data comes
-                // populate table
-                if (response.data && response.data.length > 0) {
-                    let tableBody = '';
-                    response.data.forEach((info, index) => {
-                        tableBody += `
+            if (response.status === 'empty') {
+                $('#recordsTableBody').html('');
+                if (!alreadyAlerted) {
+                    alert(response.message);
+                    alreadyAlerted = true;
+                }
+                invalidLocationAlerted = false;
+                return;
+            }
+
+            alreadyAlerted = false;
+            invalidLocationAlerted = false;
+
+            if (response.data && response.data.length > 0) {
+                let tableBody = '';
+                response.data.forEach((info, index) => {
+                    tableBody += `
                         <tr id="row_${index}">
                             <td>
-                                <input type='text' id='services_${index}'  value="${info.services}" readonly>
-                                <input type='hidden' id='services_${index}' name='services[]' value="${info.servicesid}" readonly>
+                                <input type='text' value="${info.services}" readonly>
+                                <input type='hidden' name='services[]' value="${info.servicesid}" readonly>
                             </td>
                             <td>
-                                <input type="hidden" id='size${index}' name='size[]' value="${info.size}" readonly>
-                                <input type='text' id='size_${index}' value="${info.p_size}" readonly>
+                                <input type="hidden" name='size[]' value="${info.size}" readonly>
+                                <input type='text' value="${info.p_size}" readonly>
                             </td>
                             <td>
-                                <input type="text" name="stage[]" id="stage_${index}" value="${info.stage}" readonly/>
+                                <input type="text" name="stage[]" value="${info.stage}" readonly/>
                             </td>
                             <td>
-                                <input type="text"  name="batch_number[]" value="${info.batch_number}" readonly />
+                                <input type="text" name="batch_number[]" value="${info.batch_number}" readonly />
                             </td>
                             <td>
                                 <input type="text" name="Quantity[]" value="${info.Quantity}" readonly />
                             </td>
                             <td>
-                                <input type="text"  name="rem_qty[]" value="${info.rem_qty}" readonly/>
+                                <input type="text" name="rem_qty[]" value="${info.rem_qty}" readonly/>
                             </td>
                             <td>
-                                <input type="text"  name="received_qty[]" value="${info.received_qty ?? ''}" oninput="validateQuantitiesforindex(${index})" required/>
+                                <input type="text" name="received_qty[]" value="${info.received_qty ?? ''}" oninput="validateQuantitiesforindex(${index})" required/>
                             </td>
-                          <td>
-    <input type="text"  name="missing_qty[]" value="${info.missing_qty ?? 0}"  oninput="validateQuantitiesforindex(${index})" id="missing_qty${index}" required/>
-</td>
+                            <td>
+                                <input type="text" name="missing_qty[]" value="${info.missing_qty ?? 0}" oninput="validateQuantitiesforindex(${index})" required/>
+                            </td>
                         </tr>`;
-                    });
-                    $('#recordsTableBody').html(tableBody);
-                } else {
-                    resetTable();
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("AJAX Error: ", error);
+                });
+                $('#recordsTableBody').html(tableBody);
+            } else {
+                resetTable();
             }
-        });
-    }
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX Error: ", error);
+        }
+    });
+}
 
+function resetTable() {
+    $('#recordsTableBody').html('');
+    alreadyAlerted = false;
+    invalidLocationAlerted = false;
+}
 
-    $('#farm_dcNo').on('keypress', function(e) {
-    if (e.which === 13) { // Enter key
-        e.preventDefault(); // रोकता है form submit
-        hideshow(); // call your function
-    }
-});
 
 
 </script>

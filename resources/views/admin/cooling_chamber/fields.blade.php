@@ -69,19 +69,19 @@
                 <option value="">Select Location</option>
 
                 @foreach (DB::table('location')->get() as $location)
-                    <option value="{{ $location->id }}" @if (isset($ripening_chamber->receive_location_id) && $ripening_chamber->receive_location_id == $location->id) selected @endif>
+                    <option value="{{ $location->id }}" @if (isset($cooling_chamber->receive_location_id) && $cooling_chamber->receive_location_id == $location->id) selected @endif>
                         {{ $location->location }}
                     </option>
                 @endforeach
 
             </select>
-            <input type="hidden" name="original_location_id" id="original_location_id" value="{{ $ripening_chamber->receive_location_id ?? '' }}">
-            <input type="hidden" name="original_invoice" id="original_invoice" value="{{ $ripening_chamber->Invoicenumber ?? '' }}">
-            <input type="hidden" name="original_invoice_no"  id="original_invoice_no" value="{{ $ripening_chamber->invoice_no ?? '' }}">
+            <input type="hidden" name="original_location_id" id="original_location_id" value="{{ $cooling_chamber->receive_location_id ?? '' }}">
+            <input type="hidden" name="original_invoice" id="original_invoice" value="{{ $cooling_chamber->Invoicenumber ?? '' }}">
+            <input type="hidden" name="original_invoice_no"  id="original_invoice_no" value="{{ $cooling_chamber->invoice_no ?? '' }}">
         </div>
 
         <div class="form-group col-md-3">
-            <label for="Invoicenumber">Ripening Chamber No <span class="required">*</span></label>
+            <label for="Invoicenumber">Cooling Chamber No <span class="required">*</span></label>
             <input type="text" name="Invoicenumber" value="{{ old('Invoicenumber', $invoiceValue) }}"
                 class="form-control" readonly>
             <input type="hidden" name="invoice_no" value="{{ old('invoice_no', $invoiceNumber) }}">
@@ -90,10 +90,10 @@
 
 
         <div class="form-group col-md-3">
-            <label>Ripening Chamber Date <span class="required" style="color:red;">*</span></label>
+            <label>Cooling Chamber Date <span class="required" style="color:red;">*</span></label>
 
             <input class="datepicker-here form-control" id="billdate" name="billdate" type="text"
-                value="{{ isset($ripening_chamber->billdate) ? \Carbon\Carbon::parse($ripening_chamber->billdate)->format('d-m-Y') : old('billdate') ?? date('d-m-Y') }}"
+                value="{{ isset($cooling_chamber->billdate) ? \Carbon\Carbon::parse($cooling_chamber->billdate)->format('d-m-Y') : old('billdate') ?? date('d-m-Y') }}"
                 data-language="en" placeholder="Enter Date" data-date-format="dd-mm-yyyy" data-auto-close="true">
             @error('billdate')
                 <span class="text-danger"><strong>{{ $message }}</strong></span>
@@ -105,16 +105,17 @@
 
 
  <div class="form-group col-md-3">
-    <label>Warehouse Inward Number <span class="required" style="color:red;">*</span></label>
-    {{-- <input type="text" id="warehouse_inward_No" name="warehouse_inward_No" onblur="hideshow()"
-        value="{{ old('warehouse_inward_No', $ripening_chamber->warehouse_inward_No ?? 'WAREIN-') }}"
+    <label>Ripening Chamber Number <span class="required" style="color:red;">*</span></label>
+    {{-- <input type="text" id="ripening_chamber_No" name="ripening_chamber_No" onblur="hideshow()"
+        value="{{ old('ripening_chamber_No', $cooling_chamber->ripening_chamber_No ?? 'RIPECHAM-') }}"
         class="form-control"> --}}
 
-
-        <select id="warehouse_inward_No" name="warehouse_inward_No" class="form-control select2" onblur="hideshow()">
-    <option value="">Select Warehouse Inward Number</option>
+        <select id="ripening_chamber_No" name="ripening_chamber_No" class="form-control select2" onblur="hideshow()">
+    <option value="">Select Ripening Chamber</option>
 </select>
 </div>
+
+
     </div>
     <hr>
 
@@ -138,8 +139,8 @@
                             </tr>
                         </thead>
                         <tbody id="recordsTableBody">
-                            @if (isset($ripening_chamber_details))
-                                @foreach ($ripening_chamber_details as $index => $detail)
+                            @if (isset($cooling_chamber_details))
+                                @foreach ($cooling_chamber_details as $index => $detail)
                                     @php
                                         $product = DB::table('products')->where('id', $detail->services)->first();
                                         $product_name = $product ? $product->product_name : 'Unknown Product';
@@ -186,7 +187,7 @@
         <div class="col">
             <div class="text-center">
                 <button type="submit" class="btn btn-primary">{{ __('Save') }}</button> <a
-                    href="{{ route('admin.farm_inward.index') }}" class="btn btn-secondary">{{ __('Cancel') }}</a>
+                    href="{{ route('admin.cooling_chamber.index') }}" class="btn btn-secondary">{{ __('Cancel') }}</a>
             </div>
         </div>
     </div>
@@ -233,12 +234,11 @@
     });
 
     // ✅ Dropdown change (IMPORTANT)
-    $("#warehouse_inward_No").on("change", function() {
+    $("#ripening_chamber_No").on("change", function() {
         hideshow();
     });
 
 });
-
     function getInvoiceBatch(location_id) {
         let originalLocation = $("#original_location_id").val();
 
@@ -252,7 +252,7 @@
 
         // Fetch new invoice/batch for different location
         $.ajax({
-            url: "{{ route('admin.ripening_chamber.get-invoice') }}",
+            url: "{{ route('admin.cooling_chamber.get-invoice') }}",
 
             type: "GET",
             data: {
@@ -268,40 +268,35 @@
     }
 
 
-    function validateQuantitiesforindex(index) {
-        var remQty = parseFloat(document.getElementsByName('rem_qty[]')[index].value) || 0;
-        var receivedQty = parseFloat(document.getElementsByName('chamber_qty[]')[index].value) || 0;
+function validateQuantitiesforindex(index) {
+    var remQty = parseFloat(document.getElementsByName('rem_qty[]')[index].value) || 0;
+    var receivedQty = parseFloat(document.getElementsByName('chamber_qty[]')[index].value) || 0;
 
-        var totalQty = receivedQty;
-
-        if (totalQty > remQty) {
-            // Adjust missingQty if total exceeds remaining
-            missingQty = remQty - receivedQty;
-            document.getElementsByName('missing_qty[]')[index].value = missingQty >= 0 ? missingQty : 0;
-            alert('Sum of received and missing quantity cannot exceed remaining quantity.');
-        }
+    if (receivedQty > remQty) {
+        alert('Chamber quantity cannot exceed remaining quantity.');
+        document.getElementsByName('chamber_qty[]')[index].value = remQty;
     }
+}
 </script>
 
 <script>
 
-
     let alreadyAlerted = false; // flag
 
     function hideshow() {
-        const warehouse_inward_No = $('#warehouse_inward_No').val();
+        const ripening_chamber_No = $('#ripening_chamber_No').val();
 
-        if (!warehouse_inward_No) {
+        if (!ripening_chamber_No) {
             resetTable();
             return;
         }
 
         $.ajax({
-            url: "{{ route('admin.ripening_chamber-getOrderRecords') }}",
+            url: "{{ route('admin.cooling_chamber-getOrderRecords') }}",
             type: "GET",
             data: {
-                warehouse_inward_No: warehouse_inward_No,
-                inward_id: "{{ $ripening_chamber->id ?? '' }}",
+                ripening_chamber_No: ripening_chamber_No,
+                inward_id: "{{ $cooling_chamber->id ?? '' }}",
                 _token: "{{ csrf_token() }}"
             },
             success: function(response) {
@@ -360,42 +355,43 @@
     }
 
 
-    $('#warehouse_inward_No').on('keypress', function(e) {
+    $('#ripening_chamber_No').on('keypress', function(e) {
     if (e.which === 13) { // Enter key
         e.preventDefault(); // रोकता है form submit
         hideshow(); // call your function
     }
 });
-let selectedValue = "{{ $ripening_chamber->warehouse_inward_No ?? '' }}";
+let selectedValue = "{{ $cooling_chamber->ripening_chamber_No ?? '' }}";
 
 function getRipeningChambers(location_id) {
 
     if (!location_id) {
-        $("#warehouse_inward_No").html('<option value="">Select Warehouse Inward No</option>');
+        $("#ripening_chamber_No").html('<option value="">Select Ripening Chamber</option>');
         return;
     }
 
     $.ajax({
-        url: "{{ route('admin.Warehouse.getRipeningWarehouse') }}",
+        url: "{{ route('admin.cooling_chamber.getRipeningChambers') }}",
         type: "GET",
         data: { location_id: location_id },
         success: function(response) {
 
-            let options = '<option value="">Select Warehouse Inward No</option>';
+            let options = '<option value="">Select Ripening Chamber</option>';
 
             if (response.data.length > 0) {
                 response.data.forEach(function(item) {
-                    // item is already a string
-                    let selected = (item == selectedValue) ? 'selected' : '';
-                    options += `<option value="${item}" ${selected}>
-                                    ${item}
+
+                    let selected = (item.Invoicenumber == selectedValue) ? 'selected' : '';
+
+                    options += `<option value="${item.Invoicenumber}" ${selected}>
+                                    ${item.Invoicenumber}
                                 </option>`;
                 });
             }
 
-            $("#warehouse_inward_No")
+            $("#ripening_chamber_No")
                 .html(options)
-                .trigger('change'); // triggers any dependent change
+                .trigger('change'); // ✅ triggers hideshow automatically
         }
     });
 }

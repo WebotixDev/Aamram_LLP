@@ -42,7 +42,7 @@ class RipeningChamberRepository extends BaseRepository
     $loname = $locationname ? $locationname->location : null;
 
 
-        $invoice = \App\Helpers\Helpers::getNextInvoiceForWarehouseInward($request->receive_location_id);
+        $invoice = \App\Helpers\Helpers::getNextInvoiceForRipening($request->receive_location_id);
 
         $invoiceNumber = $invoice['formatted'];
 
@@ -127,7 +127,7 @@ public function update(array $request, $id)
         $originalLocation = $request['original_location_id'] ?? null;
 
         if ($location != $originalLocation) {
-            $invoice = \App\Helpers\Helpers::getNextInvoiceForFarmDC($location);
+            $invoice = \App\Helpers\Helpers::getNextInvoiceForRipening($location);
             $invoiceNumber = $invoice['formatted'];
             $invoice_no = $invoice['number'];
         } else {
@@ -143,7 +143,7 @@ public function update(array $request, $id)
         // ✅ UPDATE MAIN TABLE
         Ripening_Chamber::where('id', $id)->update([
             'billdate' => $billDate,
-            'farm_dcNo' => $request['farm_dcNo'],
+            'warehouse_inward_No' => $request['warehouse_inward_No'],
             'receive_location_id' => $location,
             'receive_location_name' => $locationName,
             'Invoicenumber' => $invoiceNumber,
@@ -162,18 +162,16 @@ public function update(array $request, $id)
         $stages = $request['stage'] ?? [];
         $quantities = $request['Quantity'] ?? [];
         $batches = $request['batch_number'] ?? [];
-        $receivedQty = $request['received_qty'] ?? [];
-        $missingQty = $request['missing_qty'] ?? [];
+        $chamber_qty = $request['chamber_qty'] ?? [];
 
         for ($i = 0; $i < count($services); $i++) {
 
 
 
-    $received = $receivedQty[$i] ?? 0;
-    $missing = $missingQty[$i] ?? 0;
+    $received = $chamber_qty[$i] ?? 0;
 
     // Skip this row if both received and missing qty are 0
-    if ($received == 0 && $missing == 0) {
+    if ($received == 0) {
         continue;
     }
             $sizeData = Product_details::find($sizes[$i]);
@@ -187,8 +185,7 @@ public function update(array $request, $id)
                 'stage' => $stages[$i] ?? null,
                 'Quantity' => $quantities[$i] ?? 0,
                 'batch_number' => $batches[$i] ?? null,
-                'received_qty' => $receivedQty[$i] ?? 0,
-                'missing_qty' => $missingQty[$i] ?? 0,
+                'chamber_qty' => $chamber_qty[$i] ?? 0,
                 'user_id' => Auth::id(),
                 'update_id' => Auth::id(),
                 'created_at' => now(),

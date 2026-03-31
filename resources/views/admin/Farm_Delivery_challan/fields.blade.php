@@ -42,9 +42,9 @@ if (isset($invoice)) {
                     @endforeach
 
                 </select>
-    <input type="hidden" id="original_location_id" value="{{ $Farm_Delivery_challan->from_location_id ?? '' }}">
-    <input type="hidden" id="original_invoice" value="{{ $Farm_Delivery_challan->Invoicenumber ?? '' }}">
-    <input type="hidden" id="original_invoice_no" value="{{ $Farm_Delivery_challan->invoice_no ?? '' }}">
+    <input type="hidden" name="original_location_id"  id="original_location_id" value="{{ $Farm_Delivery_challan->from_location_id ?? '' }}">
+    <input type="hidden" name="original_invoice" id="original_invoice" value="{{ $Farm_Delivery_challan->Invoicenumber ?? '' }}">
+    <input type="hidden" name="original_invoice_no" id="original_invoice_no" value="{{ $Farm_Delivery_challan->invoice_no ?? '' }}">
             </div>
 
  <div class="form-group col-md-3">

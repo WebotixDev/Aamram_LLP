@@ -60,14 +60,6 @@ public function getBatchByLocation(Request $request)
     ]);
 }
 
-public function WarehouseStockReport()
-{
-    $locations = DB::table('location')
-        ->select('id', 'location')
-        ->get();
-
-    return view('admin.warehouse_inward.Warehousestock', compact('locations'));
-}
 
 
 public function getBatchByLocationForStock(Request $request)
@@ -197,12 +189,22 @@ public function getOrderRecords(Request $request)
 {
     $farm_dcNo = $request->farm_dcNo;
 
-    $challan = Farm_Delivery_challan::where('Invoicenumber', $farm_dcNo)
-                ->orWhere('invoice_no', $farm_dcNo)
-                ->first();
+      $location_id = $request->location_id; // ✅ get location
+    // ✅ Check challan with location
+    $challan = Farm_Delivery_challan::where(function($q) use ($farm_dcNo) {
+            $q->where('Invoicenumber', $farm_dcNo)
+              ->orWhere('invoice_no', $farm_dcNo);
+        })
+        ->where('to_location_id', $location_id) // ✅ filter by location
+        ->first();
 
+    // ❌ If not matching location
     if (!$challan) {
-        return response()->json(['status' => 'error','data' => []]);
+        return response()->json([
+            'status' => 'invalid_location',
+            'message' => 'This challan does not belong to selected location',
+            'data' => []
+        ]);
     }
 
     $details = Farm_Delivery_challan_details::where('pid', $challan->id)->get();
@@ -273,73 +275,200 @@ public function getOrderRecords(Request $request)
 // ==========================
 // 👉 Get Stock Report
 // ==========================
+
+public function WarehouseStockReport()
+{
+    $locations = DB::table('location')
+        ->select('id', 'location')
+        ->get();
+
+    return view('admin.warehouse_inward.Warehousestock', compact('locations'));
+}
+
+// public function stockReport(Request $request)
+// {
+//     $locationId = $request->location_id;
+//     $farmDcNo   = $request->farm_dcNo;
+
+//     // ✅ Step 1: Aggregate inward WITH farm_dcNo from HEADER (wi)
+//     $inwardSub = DB::table('warehouse_inward_details as wid')
+//         ->join('warehouse_inward as wi', 'wi.id', '=', 'wid.pid')
+//         ->select(
+//             'wi.receive_location_id',
+//             'wi.receive_location_name',
+//             'wi.farm_dcNo', // ✅ FROM HEADER TABLE
+
+//             'wid.services',
+//             'wid.size',
+//             'wid.batch_number',
+
+//             DB::raw('SUM(wid.received_qty) as total_received'),
+//             DB::raw('SUM(wid.missing_qty) as total_missing')
+//         )
+//         ->groupBy(
+//             'wi.receive_location_id',
+//             'wi.receive_location_name',
+//             'wi.farm_dcNo', // ✅ IMPORTANT
+
+//             'wid.services',
+//             'wid.size',
+//             'wid.batch_number'
+//         );
+
+//     // ✅ Step 2: Main Query
+//     $records = DB::table('farm_delivery_challan_details as fdc')
+//         ->join('farm_delivery_challan as fc', 'fc.id', '=', 'fdc.pid')
+
+//         ->leftJoinSub($inwardSub, 'wi_sum', function ($join) {
+//             $join->on('wi_sum.services', '=', 'fdc.services')
+//                  ->on('wi_sum.size', '=', 'fdc.size')
+//                  ->on('wi_sum.batch_number', '=', 'fdc.batch_number')
+//                  ->on('wi_sum.farm_dcNo', '=', 'fc.Invoicenumber'); // ✅ FINAL FIX
+//         })
+
+//         ->leftJoin('products as p', 'p.id', '=', 'fdc.services')
+//         ->leftJoin('product_details as pd', 'pd.id', '=', 'fdc.size')
+
+//         ->select(
+//             'wi_sum.receive_location_name',
+//             'fc.Invoicenumber as farm_dcNo',
+//             'p.product_name',
+//             'pd.product_size',
+//             'fdc.stage',
+//             'fdc.batch_number',
+
+//             DB::raw('SUM(fdc.Quantity) as challan_qty'),
+//             DB::raw('COALESCE(wi_sum.total_received,0) as total_received'),
+//             DB::raw('COALESCE(wi_sum.total_missing,0) as total_missing'),
+
+//             DB::raw('(SUM(fdc.Quantity) - COALESCE(wi_sum.total_received + wi_sum.total_missing,0)) as remaining_qty')
+//         )
+
+//         // ✅ Filters
+//         ->when($locationId, function ($q) use ($locationId) {
+//             $q->where('wi_sum.receive_location_id', $locationId);
+//         })
+
+//         ->when($farmDcNo, function ($q) use ($farmDcNo) {
+//             $q->where('fc.Invoicenumber', $farmDcNo);
+//         })
+
+//         // ✅ Group By
+//         ->groupBy(
+//             'wi_sum.receive_location_name',
+//             'wi_sum.total_received',
+//             'wi_sum.total_missing',
+//             'fc.Invoicenumber',
+//             'p.product_name',
+//             'pd.product_size',
+//             'fdc.stage',
+//             'fdc.batch_number'
+//         )
+
+//         ->orderBy('fc.Invoicenumber')
+//         ->get();
+
+//     // ✅ Format response
+//     $data = [];
+
+//     foreach ($records as $row) {
+//         $data[] = [
+//             'location_name'   => $row->receive_location_name ?? 'N/A',
+//             'farm_dcNo'       => $row->farm_dcNo,
+//             'service_name'    => $row->product_name,
+//             'size_name'       => $row->product_size,
+//             'stage'           => $row->stage,
+//             'batch_number'    => $row->batch_number,
+//             'challan_qty'     => (int) $row->challan_qty,
+//             'total_received'  => (int) $row->total_received,
+//             'total_missing'   => (int) $row->total_missing,
+//             'remaining_qty'   => (int) $row->remaining_qty,
+//         ];
+//     }
+
+//     return response()->json([
+//         'status' => 'success',
+//         'data'   => $data
+//     ]);
+// }
+
+
 public function stockReport(Request $request)
 {
     $locationId = $request->location_id;
     $farmDcNo   = $request->farm_dcNo;
 
-    $records = DB::table('farm_delivery_challan_details as fdc')
+    // Step 1: Get DC records filtered by DC number and location
+    $dcRecords = DB::table('farm_delivery_challan_details as fdc')
         ->join('farm_delivery_challan as fc', 'fc.id', '=', 'fdc.pid')
-
-        ->leftJoin('warehouse_inward_details as wid', function ($join) {
-            $join->on('wid.services', '=', 'fdc.services')
-                 ->on('wid.size', '=', 'fdc.size')
-                 ->on('wid.batch_number', '=', 'fdc.batch_number');
-        })
-
-        ->leftJoin('warehouse_inward as wi', 'wi.id', '=', 'wid.pid')
-
-        ->leftJoin('products as p', 'p.id', '=', 'fdc.services')
-        ->leftJoin('product_details as pd', 'pd.id', '=', 'fdc.size')
-
+        ->join('products as p', 'p.id', '=', 'fdc.services')
+        ->join('product_details as pd', 'pd.id', '=', 'fdc.size')
         ->select(
-            'wi.receive_location_name',
             'fc.Invoicenumber as farm_dcNo',
+            'fc.to_location_id',
+            'fdc.services',
+            'fdc.size',
             'p.product_name',
             'pd.product_size',
             'fdc.stage',
             'fdc.batch_number',
-
-            DB::raw('SUM(fdc.Quantity) as challan_qty'),
-            DB::raw('COALESCE(SUM(wid.received_qty),0) as total_received'),
-            DB::raw('COALESCE(SUM(wid.missing_qty),0) as total_missing'),
-
-            DB::raw('(SUM(fdc.Quantity) - COALESCE(SUM(wid.received_qty + wid.missing_qty),0)) as remaining_qty')
+            'fdc.Quantity as challan_qty'
         )
-
-        ->when($locationId, function ($q) use ($locationId) {
-            $q->where('wi.receive_location_id', $locationId);
-        })
-
         ->when($farmDcNo, function ($q) use ($farmDcNo) {
             $q->where('fc.Invoicenumber', $farmDcNo);
         })
-
-        ->groupBy(
-            'wi.receive_location_name',
-            'fc.Invoicenumber',
-            'p.product_name',
-            'pd.product_size',
-            'fdc.stage',
-            'fdc.batch_number'
-        )
+        ->when($locationId, function ($q) use ($locationId) {
+            $q->where('fc.to_location_id', $locationId);
+        })
         ->get();
 
     $data = [];
 
-    foreach ($records as $row) {
-        $data[] = [
-            'location_name'   => $row->receive_location_name ?? 'N/A',
-            'farm_dcNo'       => $row->farm_dcNo,
-            'service_name'    => $row->product_name,
-            'size_name'       => $row->product_size,
-            'stage'           => $row->stage,
-            'batch_number'    => $row->batch_number,
-            'challan_qty'     => $row->challan_qty,
-            'total_received'  => $row->total_received,
-            'total_missing'   => $row->total_missing,
-            'remaining_qty'   => $row->remaining_qty,
-        ];
+foreach ($dcRecords as $row) {
+    // Step 2: Sum received and missing separately
+    $totals = DB::table('warehouse_inward_details as wid')
+        ->join('warehouse_inward as wi', 'wi.id', '=', 'wid.pid')
+        ->where('wi.farm_dcNo', $row->farm_dcNo)
+        ->where('wi.receive_location_id', $row->to_location_id)
+        ->where('wid.services', $row->services)
+        ->where('wid.size', $row->size)
+        ->where('wid.batch_number', $row->batch_number)
+        ->select(
+            DB::raw('COALESCE(SUM(wid.received_qty),0) as total_received'),
+            DB::raw('COALESCE(SUM(wid.missing_qty),0) as total_missing')
+        )
+        ->first();
+
+    $total_received = $totals->total_received ?? 0;
+    $total_missing  = $totals->total_missing ?? 0;
+
+    $remainingQty = $row->challan_qty - ($total_received + $total_missing);
+
+    // ✅ Skip rows where both missing and remaining are 0
+    if ($total_missing == 0 && $remainingQty == 0) continue;
+
+    $location = DB::table('location')->where('id', $row->to_location_id)->value('location') ?? 'N/A';
+
+    $data[] = [
+        'location_name'   => $location, // friendly location name
+        'farm_dcNo'       => $row->farm_dcNo,
+        'service_name'    => $row->product_name,
+        'size_name'       => $row->product_size,
+        'stage'           => $row->stage,
+        'batch_number'    => $row->batch_number,
+        'challan_qty'     => (int) $row->challan_qty,
+        'total_received'  => (int) $total_received,
+        'total_missing'   => (int) $total_missing,
+        'remaining_qty'   => (int) $remainingQty
+    ];
+}
+
+    if (empty($data)) {
+        return response()->json([
+            'status' => 'empty',
+            'message' => 'No stock available or all quantities already received for this DC.',
+            'data' => []
+        ]);
     }
 
     return response()->json([

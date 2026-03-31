@@ -41,11 +41,11 @@ $isEdit = isset($purchase_details) ? 1 : 0;
                         </option>
                     @endforeach
                 </select>
-<input type="hidden" id="original_location_id" value="{{ $purchase_details->location_id ?? '' }}">
-<input type="hidden" id="original_invoice" value="{{ $purchase_details->Invoicenumber ?? '' }}">
-<input type="hidden" id="original_invoice_no" value="{{ $purchase_details->invoice_no ?? '' }}">
-<input type="hidden" id="original_batch" value="{{ $purchase_details->batch_number ?? '' }}">
-<input type="hidden" id="original_batch_no" value="{{ $purchase_details->batch_no ?? '' }}">
+<input type="hidden" name="original_location_id" id="original_location_id" value="{{ $purchase_details->location_id ?? '' }}">
+<input type="hidden" name="original_invoice" id="original_invoice" value="{{ $purchase_details->Invoicenumber ?? '' }}">
+<input type="hidden" name="original_invoice_no" id="original_invoice_no" value="{{ $purchase_details->invoice_no ?? '' }}">
+<input type="hidden" name="original_batch" id="original_batch" value="{{ $purchase_details->batch_number ?? '' }}">
+<input type="hidden"  name="original_batch_no" id="original_batch_no" value="{{ $purchase_details->batch_no ?? '' }}">
             </div>
 
  <div class="form-group col-md-3">
